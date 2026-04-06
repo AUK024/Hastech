@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AutoReplyTemplateBase(BaseModel):
@@ -24,7 +24,6 @@ class AutoReplyTemplateUpdate(BaseModel):
 
 
 class AutoReplyTemplateRead(AutoReplyTemplateBase):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int

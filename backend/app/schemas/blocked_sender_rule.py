@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BlockedSenderRuleBase(BaseModel):
@@ -20,7 +20,6 @@ class BlockedSenderRuleUpdate(BaseModel):
 
 
 class BlockedSenderRuleRead(BlockedSenderRuleBase):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int

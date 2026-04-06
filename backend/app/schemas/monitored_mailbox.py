@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class MonitoredMailboxBase(BaseModel):
@@ -23,7 +23,6 @@ class MonitoredMailboxUpdate(BaseModel):
 
 
 class MonitoredMailboxRead(MonitoredMailboxBase):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int

@@ -1,8 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AutoReplyLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     incoming_email_id: int
     template_id: int
@@ -13,6 +15,3 @@ class AutoReplyLogRead(BaseModel):
     sent_at: datetime | None = None
     provider_message_id: str | None = None
     error_message: str | None = None
-
-    class Config:
-        from_attributes = True
