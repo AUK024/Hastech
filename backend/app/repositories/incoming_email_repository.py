@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlalchemy import select
 from app.models.incoming_email import IncomingEmail
 from app.repositories.base import RepositoryBase

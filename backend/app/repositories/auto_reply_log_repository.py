@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlalchemy import select
 from app.models.auto_reply_log import AutoReplyLog
 from app.repositories.base import RepositoryBase
