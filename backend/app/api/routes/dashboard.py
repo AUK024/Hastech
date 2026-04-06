@@ -10,9 +10,9 @@ router = APIRouter()
 
 @router.get('/')
 def dashboard_stats(db: Session = Depends(db_session)) -> dict:
-    daily_incoming = db.scalar(select(func.count(IncomingEmail.id))) or 0
+    incoming_mail_count = db.scalar(select(func.count(IncomingEmail.id))) or 0
     daily_external = db.scalar(select(func.count(IncomingEmail.id)).where(IncomingEmail.is_internal.is_(False))) or 0
-    daily_auto_reply_sent = db.scalar(select(func.count(AutoReplyLog.id)).where(AutoReplyLog.reply_sent.is_(True))) or 0
+    replied_mail_count = db.scalar(select(func.count(AutoReplyLog.id)).where(AutoReplyLog.reply_sent.is_(True))) or 0
     daily_errors = db.scalar(select(func.count(IncomingEmail.id)).where(IncomingEmail.processing_status == 'error')) or 0
 
     lang_rows = db.execute(
@@ -23,9 +23,11 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     ).all()
 
     return {
-        'daily_incoming': daily_incoming,
+        'incoming_mail_count': incoming_mail_count,
+        'replied_mail_count': replied_mail_count,
+        'daily_incoming': incoming_mail_count,
         'daily_external': daily_external,
-        'daily_auto_reply_sent': daily_auto_reply_sent,
+        'daily_auto_reply_sent': replied_mail_count,
         'daily_errors': daily_errors,
         'language_distribution': [{'lang': row[0] or 'unknown', 'count': row[1]} for row in lang_rows],
         'top_domains': [],

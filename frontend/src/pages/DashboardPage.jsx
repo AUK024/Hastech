@@ -13,12 +13,30 @@ export function DashboardPage() {
       <h2>Dashboard</h2>
       {!data && <p>Loading...</p>}
       {data && (
-        <ul>
-          <li>Daily incoming: {data.daily_incoming}</li>
-          <li>Daily external: {data.daily_external}</li>
-          <li>Auto reply sent: {data.daily_auto_reply_sent}</li>
-          <li>Error count: {data.daily_errors}</li>
-        </ul>
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 12,
+              marginBottom: 14,
+            }}
+          >
+            <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Gelen Mail Sayısı</h3>
+              <strong style={{ fontSize: 28 }}>{data.incoming_mail_count ?? data.daily_incoming ?? 0}</strong>
+            </article>
+            <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Dönüş Yapılan Mail Sayısı</h3>
+              <strong style={{ fontSize: 28 }}>{data.replied_mail_count ?? data.daily_auto_reply_sent ?? 0}</strong>
+            </article>
+          </div>
+
+          <ul>
+            <li>External mail count: {data.daily_external}</li>
+            <li>Error count: {data.daily_errors}</li>
+          </ul>
+        </>
       )}
     </section>
   )
