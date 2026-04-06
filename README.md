@@ -22,6 +22,17 @@ docker compose up --build
 
 ## Frontend
 - React app: `http://localhost:5173`
+- Admin panel login-first akışındadır (giriş yapılmadan diğer ekranlar açılmaz).
+
+### Admin Login Yetkilendirme (Frontend)
+Vite env değişkenleri:
+
+- `VITE_ALLOWED_ADMIN_EMAILS=admin@hascelik.com,ops@hascelik.com`
+- `VITE_ALLOWED_ADMIN_DOMAINS=hascelik.com`
+
+Not:
+- En az bir liste tanımlanabilir; tanımlı değilse varsayılan kullanıcı `admin@hascelik.com` olur.
+- Domain bazlı giriş aktifleştirmek için `VITE_ALLOWED_ADMIN_DOMAINS` kullanılır.
 
 ## Celery
 - Worker: `backend.app.workers.celery_app.celery_app`

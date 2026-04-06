@@ -12,7 +12,7 @@ export function AuditLogsPage() {
     <section>
       <h2>Audit Logs</h2>
       <ul>
-        {items.map((x) => <li key={x.id}>{x.module_name}.{x.action_name} -> {x.result}</li>)}
+        {items.map((x) => <li key={x.id}>{x.module_name}.{x.action_name} {'->'} {x.result}</li>)}
       </ul>
     </section>
   )

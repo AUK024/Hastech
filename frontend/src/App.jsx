@@ -1,36 +1,86 @@
-import { Routes, Route, Link } from 'react-router-dom'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { routes } from './pages/routes'
 import { AppLayout } from './layouts/AppLayout'
+import { useAuth } from './contexts/AuthContext'
 import { useUI } from './contexts/UIContext'
 
 export default function App() {
   const { theme } = useUI()
+  const { user, isAuthenticated, logout } = useAuth()
+  const location = useLocation()
   const isDark = theme === 'dark'
 
+  const sidebarRoutes = routes.filter((r) => !r.public && r.sidebar !== false)
+  const sectionOrder = ['Overview', 'Operations', 'Logs', 'Reports', 'System']
+
+  const sections = sectionOrder
+    .map((sectionName) => ({
+      name: sectionName,
+      items: sidebarRoutes.filter((r) => r.category === sectionName),
+    }))
+    .filter((section) => section.items.length > 0)
+
+  const sidebar = (
+    <nav style={{ display: 'grid', gap: 14 }}>
+      {sections.map((section) => (
+        <section key={section.name}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: 12, letterSpacing: 0.6, opacity: 0.75 }}>
+            {section.name}
+          </h3>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {section.items.map((r) => (
+              <NavLink
+                key={r.path}
+                to={r.path}
+                style={({ isActive }) => ({
+                  textDecoration: 'none',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
+                  background: isActive ? (isDark ? '#0f766e' : '#ccfbf1') : (isDark ? '#111827' : '#f8fafc'),
+                  color: isDark ? '#e5e7eb' : '#111827',
+                  fontWeight: isActive ? 700 : 500,
+                })}
+              >
+                {r.label}
+              </NavLink>
+            ))}
+          </div>
+        </section>
+      ))}
+    </nav>
+  )
+
   return (
-    <AppLayout>
-      <nav style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-        {routes.map((r) => (
-          <Link
-            key={r.path}
-            to={r.path}
-            style={{
-              textDecoration: 'none',
-              padding: '6px 10px',
-              borderRadius: 8,
-              background: isDark ? '#1f2937' : '#ffffff',
-              color: isDark ? '#e5e7eb' : '#111827',
-              border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
-            }}
-          >
-            {r.label}
-          </Link>
-        ))}
-      </nav>
+    <AppLayout sidebar={isAuthenticated ? sidebar : null} user={user} onLogout={logout}>
       <Routes>
-        {routes.map((r) => (
-          <Route key={r.path} path={r.path} element={<r.component />} />
-        ))}
+        {routes.map((r) => {
+          const element = <r.component />
+          if (r.public) {
+            if (r.path === '/login') {
+              return (
+                <Route
+                  key={r.path}
+                  path={r.path}
+                  element={isAuthenticated ? <Navigate to="/" replace /> : element}
+                />
+              )
+            }
+            return <Route key={r.path} path={r.path} element={element} />
+          }
+          return (
+            <Route
+              key={r.path}
+              path={r.path}
+              element={
+                isAuthenticated
+                  ? element
+                  : <Navigate to="/login" replace state={{ from: location }} />
+              }
+            />
+          )
+        })}
+        <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
       </Routes>
     </AppLayout>
   )
