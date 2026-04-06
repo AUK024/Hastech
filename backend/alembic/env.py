@@ -1,6 +1,14 @@
+from pathlib import Path
+import sys
 from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# Ensure `app` package is importable when Alembic is run from any cwd.
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from app.db.base import Base
 from app.models import all_models  # noqa: F401
 from app.core.config import get_settings
