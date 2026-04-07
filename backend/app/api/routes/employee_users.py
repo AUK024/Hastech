@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import db_session, require_admin_user
 from app.core.config import get_settings
+from app.core.security import verify_password
 from app.repositories.employee_user_repository import EmployeeUserRepository
 from app.schemas.common import MessageResponse
 from app.schemas.employee_user import (
@@ -18,12 +19,13 @@ router = APIRouter()
 @router.post('/authorize', response_model=EmployeeUserAuthorizeResponse)
 def authorize_employee_login(payload: EmployeeUserAuthorizeRequest, db: Session = Depends(db_session)):
     email = payload.email.lower()
+    password = payload.password or ''
     settings = get_settings()
     if settings.is_admin_email(email):
         return {'authorized': True, 'role': 'admin'}
 
     employee = EmployeeUserRepository(db).get_by_email(email)
-    if employee and employee.is_active:
+    if employee and employee.is_active and verify_password(password, employee.password_hash):
         return {'authorized': True, 'role': 'employee'}
     return {'authorized': False, 'role': 'none'}
 

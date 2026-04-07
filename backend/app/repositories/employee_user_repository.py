@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from app.core.security import hash_password
 from app.models.employee_user import EmployeeUser
 from app.repositories.base import RepositoryBase
 from app.schemas.employee_user import EmployeeUserCreate, EmployeeUserUpdate
@@ -17,6 +18,7 @@ class EmployeeUserRepository(RepositoryBase):
     def create(self, data: EmployeeUserCreate, created_by: str) -> EmployeeUser:
         user = EmployeeUser(
             email=data.email.lower(),
+            password_hash=hash_password(data.password),
             full_name=data.full_name,
             is_active=data.is_active,
             created_by=created_by.lower(),
@@ -27,7 +29,11 @@ class EmployeeUserRepository(RepositoryBase):
         return user
 
     def update(self, obj: EmployeeUser, data: EmployeeUserUpdate) -> EmployeeUser:
-        for key, value in data.model_dump(exclude_none=True).items():
+        payload = data.model_dump(exclude_none=True)
+        new_password = payload.pop('password', None)
+        if new_password:
+            obj.password_hash = hash_password(new_password)
+        for key, value in payload.items():
             setattr(obj, key, value)
         self.db.commit()
         self.db.refresh(obj)
