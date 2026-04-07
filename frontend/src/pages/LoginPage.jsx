@@ -22,10 +22,10 @@ export function LoginPage() {
     return parts.join(' | ')
   }, [allowedEmails, allowedDomains])
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    const result = login(email)
+    const result = await login(email)
     if (!result.ok) {
       setError(result.error)
       return

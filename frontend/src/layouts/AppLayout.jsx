@@ -28,7 +28,7 @@ export function AppLayout({ children, sidebar, user, onLogout }) {
           {user ? (
             <>
               <span style={{ padding: '4px 8px', borderRadius: 8, border: `1px solid ${isDark ? '#374151' : '#d1d5db'}` }}>
-                {user.email}
+                {user.email} ({user.role || 'employee'})
               </span>
               <button onClick={onLogout}>{t('logout')}</button>
             </>

@@ -34,6 +34,15 @@ Not:
 - En az bir liste tanımlanabilir; tanımlı değilse varsayılan kullanıcı `admin@hascelik.com` olur.
 - Domain bazlı giriş aktifleştirmek için `VITE_ALLOWED_ADMIN_DOMAINS` kullanılır.
 
+### Employee User Yönetimi
+- `Employee Users` ekranı sadece `admin` roldeki kullanıcıya açıktır.
+- Employee kullanıcılar admin tarafından oluşturulur, güncellenir ve silinir.
+- Login sırasında admin olmayan kullanıcılar backend’deki employee listesine göre doğrulanır.
+
+Backend env:
+- `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`
+- `ADMIN_USER_DOMAINS=hascelik.com`
+
 ## Celery
 - Worker: `backend.app.workers.celery_app.celery_app`
 

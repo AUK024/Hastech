@@ -9,8 +9,10 @@ export default function App() {
   const { user, isAuthenticated, logout } = useAuth()
   const location = useLocation()
   const isDark = theme === 'dark'
+  const isAdmin = user?.role === 'admin'
 
-  const sidebarRoutes = routes.filter((r) => !r.public && r.sidebar !== false)
+  const canAccessRoute = (route) => !route.adminOnly || isAdmin
+  const sidebarRoutes = routes.filter((r) => !r.public && r.sidebar !== false && canAccessRoute(r))
   const sectionOrder = ['Overview', 'Operations', 'Logs', 'Reports', 'System']
 
   const sections = sectionOrder
@@ -73,9 +75,15 @@ export default function App() {
               key={r.path}
               path={r.path}
               element={
-                isAuthenticated
-                  ? element
-                  : <Navigate to="/login" replace state={{ from: location }} />
+                isAuthenticated ? (
+                  canAccessRoute(r) ? (
+                    element
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                ) : (
+                  <Navigate to="/login" replace state={{ from: location }} />
+                )
               }
             />
           )

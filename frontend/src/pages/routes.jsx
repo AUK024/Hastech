@@ -13,6 +13,7 @@ import { WebhookLogsPage } from './WebhookLogsPage'
 import { AuditLogsPage } from './AuditLogsPage'
 import { ReportsPage } from './ReportsPage'
 import { ReportDetailPage } from './ReportDetailPage'
+import { EmployeeUsersPage } from './EmployeeUsersPage'
 
 export const routes = [
   { path: '/login', label: 'Login', component: LoginPage, public: true, sidebar: false, category: 'Auth' },
@@ -29,5 +30,6 @@ export const routes = [
   { path: '/audit-logs', label: 'Audit Logs', component: AuditLogsPage, category: 'Logs' },
   { path: '/reports', label: 'Reports', component: ReportsPage, category: 'Reports' },
   { path: '/reports/:id', label: 'Report Detail', component: ReportDetailPage, category: 'Reports', sidebar: false },
+  { path: '/employee-users', label: 'Employee Users', component: EmployeeUsersPage, category: 'System', adminOnly: true },
   { path: '/settings', label: 'Settings', component: SettingsPage, category: 'System' },
 ]

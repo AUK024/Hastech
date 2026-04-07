@@ -6,6 +6,13 @@ from app.schemas.blocked_sender_rule import BlockedSenderRuleCreate, BlockedSend
 from app.schemas.incoming_email import IncomingEmailRead
 from app.schemas.monitored_mailbox import MonitoredMailboxCreate, MonitoredMailboxRead, MonitoredMailboxUpdate
 from app.schemas.webhook_log import WebhookLogRead
+from app.schemas.employee_user import (
+    EmployeeUserCreate,
+    EmployeeUserUpdate,
+    EmployeeUserRead,
+    EmployeeUserAuthorizeRequest,
+    EmployeeUserAuthorizeResponse,
+)
 
 __all__ = [
     'AppSettingRead',
@@ -23,4 +30,9 @@ __all__ = [
     'MonitoredMailboxRead',
     'MonitoredMailboxUpdate',
     'WebhookLogRead',
+    'EmployeeUserCreate',
+    'EmployeeUserUpdate',
+    'EmployeeUserRead',
+    'EmployeeUserAuthorizeRequest',
+    'EmployeeUserAuthorizeResponse',
 ]

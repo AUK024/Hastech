@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     graph_scope: str = 'https://graph.microsoft.com/.default'
     graph_base_url: str = 'https://graph.microsoft.com/v1.0'
 
+    admin_user_emails: str = 'admin@hascelik.com'
+    admin_user_domains: str = ''
+
     default_fallback_language: str = 'en'
     default_confidence_threshold: float = 0.70
 
@@ -32,6 +35,25 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+    @staticmethod
+    def _parse_csv(value: str) -> set[str]:
+        return {item.strip().lower() for item in value.split(',') if item.strip()}
+
+    @property
+    def admin_email_set(self) -> set[str]:
+        return self._parse_csv(self.admin_user_emails)
+
+    @property
+    def admin_domain_set(self) -> set[str]:
+        return self._parse_csv(self.admin_user_domains)
+
+    def is_admin_email(self, email: str) -> bool:
+        normalized = email.strip().lower()
+        if not normalized or '@' not in normalized:
+            return False
+        domain = normalized.split('@', 1)[1]
+        return normalized in self.admin_email_set or domain in self.admin_domain_set
 
 
 @lru_cache(maxsize=1)
