@@ -3,15 +3,48 @@ import { api } from '../services/api'
 
 export function DashboardPage() {
   const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get('/dashboard').then((res) => setData(res.data)).catch(() => setData(null))
+    let isCancelled = false
+
+    const loadDashboard = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await api.get('/dashboard/')
+        if (!isCancelled) {
+          setData(res.data)
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setData(null)
+          const status = err?.response?.status
+          setError(
+            status
+              ? `Dashboard verisi alınamadı (HTTP ${status}). API bağlantısını kontrol edin.`
+              : 'Dashboard verisi alınamadı. API bağlantısını kontrol edin.',
+          )
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadDashboard()
+    return () => {
+      isCancelled = true
+    }
   }, [])
 
   return (
     <section>
       <h2>Dashboard</h2>
-      {!data && <p>Loading...</p>}
+      {loading && <p>Loading...</p>}
+      {!loading && error ? <p style={{ color: '#dc2626' }}>{error}</p> : null}
       {data && (
         <>
           <div
@@ -38,6 +71,7 @@ export function DashboardPage() {
           </ul>
         </>
       )}
+      {!loading && !error && !data ? <p>Dashboard verisi bulunamadı.</p> : null}
     </section>
   )
 }

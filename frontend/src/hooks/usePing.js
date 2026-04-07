@@ -5,7 +5,7 @@ export function usePing() {
   const [status, setStatus] = useState('checking')
 
   useEffect(() => {
-    api.get('/dashboard')
+    api.get('/dashboard/')
       .then(() => setStatus('ok'))
       .catch(() => setStatus('error'))
   }, [])
