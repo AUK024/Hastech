@@ -6,6 +6,7 @@ from app.repositories.mailbox_repository import MailboxRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.repositories.template_repository import TemplateRepository
 from app.repositories.webhook_log_repository import WebhookLogRepository
+from app.repositories.employee_user_repository import EmployeeUserRepository
 
 __all__ = [
     'AuditLogRepository',
@@ -16,4 +17,5 @@ __all__ = [
     'SettingsRepository',
     'TemplateRepository',
     'WebhookLogRepository',
+    'EmployeeUserRepository',
 ]

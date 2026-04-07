@@ -14,6 +14,7 @@ from app.api.routes import (
     language_detection,
     webhooks,
     logs,
+    employee_users,
 )
 
 api_router = APIRouter()
@@ -31,3 +32,4 @@ api_router.include_router(workers.router, prefix='/workers', tags=['workers'])
 api_router.include_router(translations.router, prefix='/translations', tags=['translations'])
 api_router.include_router(language_detection.router, prefix='/language-detection', tags=['language-detection'])
 api_router.include_router(logs.router, prefix='/logs', tags=['logs'])
+api_router.include_router(employee_users.router, prefix='/employee-users', tags=['employee-users'])

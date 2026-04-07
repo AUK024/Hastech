@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { AUTH_STORAGE_KEY } from '../utils/constants'
+import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -24,7 +25,10 @@ const readStoredUser = () => {
     }
     const parsed = JSON.parse(raw)
     if (typeof parsed?.email === 'string' && parsed.email.includes('@')) {
-      return { email: parsed.email.toLowerCase() }
+      return {
+        email: parsed.email.toLowerCase(),
+        role: parsed.role === 'admin' ? 'admin' : 'employee',
+      }
     }
     return null
   } catch {
@@ -37,7 +41,7 @@ const extractDomain = (email) => email.split('@')[1] || ''
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser)
 
-  const login = (email) => {
+  const login = async (email) => {
     const normalized = String(email || '').trim().toLowerCase()
     if (!normalized || !normalized.includes('@')) {
       return { ok: false, error: 'Geçerli bir e-posta giriniz.' }
@@ -47,14 +51,26 @@ export function AuthProvider({ children }) {
     const permittedByEmail = allowedEmails.includes(normalized)
     const permittedByDomain = allowedDomains.includes(domain)
 
-    if (!permittedByEmail && !permittedByDomain) {
-      return { ok: false, error: 'Bu kullanıcı admin paneline yetkili değil.' }
+    if (permittedByEmail || permittedByDomain) {
+      const nextUser = { email: normalized, role: 'admin' }
+      setUser(nextUser)
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
+      return { ok: true, role: 'admin' }
     }
 
-    const nextUser = { email: normalized }
+    try {
+      const res = await api.post('/employee-users/authorize', { email: normalized })
+      if (!res.data?.authorized || res.data?.role !== 'employee') {
+        return { ok: false, error: 'Bu kullanıcı admin paneline yetkili değil.' }
+      }
+    } catch {
+      return { ok: false, error: 'Kullanıcı doğrulanamadı. API bağlantısını kontrol edin.' }
+    }
+
+    const nextUser = { email: normalized, role: 'employee' }
     setUser(nextUser)
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
-    return { ok: true }
+    return { ok: true, role: 'employee' }
   }
 
   const logout = () => {
@@ -66,6 +82,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isAdmin: user?.role === 'admin',
       login,
       logout,
       allowedEmails,

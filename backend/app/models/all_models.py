@@ -6,6 +6,7 @@ from app.models.incoming_email import IncomingEmail
 from app.models.auto_reply_log import AutoReplyLog
 from app.models.webhook_log import WebhookLog
 from app.models.audit_log import AuditLog
+from app.models.employee_user import EmployeeUser
 
 __all__ = [
     'MonitoredMailbox',
@@ -16,4 +17,5 @@ __all__ = [
     'AutoReplyLog',
     'WebhookLog',
     'AuditLog',
+    'EmployeeUser',
 ]
