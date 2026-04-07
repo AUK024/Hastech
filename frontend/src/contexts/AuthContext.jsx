@@ -17,6 +17,14 @@ const fallbackEmails = ['admin@hascelik.com']
 const allowedEmails = configuredEmails.length ? configuredEmails : fallbackEmails
 const allowedDomains = configuredDomains
 
+const extractDomain = (email) => email.split('@')[1] || ''
+const inferRoleFromEmail = (email) => {
+  const domain = extractDomain(email)
+  const permittedByEmail = allowedEmails.includes(email)
+  const permittedByDomain = allowedDomains.includes(domain)
+  return permittedByEmail || permittedByDomain ? 'admin' : 'employee'
+}
+
 const readStoredUser = () => {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY)
@@ -25,9 +33,13 @@ const readStoredUser = () => {
     }
     const parsed = JSON.parse(raw)
     if (typeof parsed?.email === 'string' && parsed.email.includes('@')) {
+      const normalizedEmail = parsed.email.toLowerCase()
+      const role = parsed.role === 'admin' || parsed.role === 'employee'
+        ? parsed.role
+        : inferRoleFromEmail(normalizedEmail)
       return {
-        email: parsed.email.toLowerCase(),
-        role: parsed.role === 'admin' ? 'admin' : 'employee',
+        email: normalizedEmail,
+        role,
       }
     }
     return null
@@ -35,8 +47,6 @@ const readStoredUser = () => {
     return null
   }
 }
-
-const extractDomain = (email) => email.split('@')[1] || ''
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser)
