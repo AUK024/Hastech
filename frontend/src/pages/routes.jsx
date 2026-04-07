@@ -18,6 +18,7 @@ import { EmployeeUsersPage } from './EmployeeUsersPage'
 export const routes = [
   { path: '/login', label: 'Login', component: LoginPage, public: true, sidebar: false, category: 'Auth' },
   { path: '/', label: 'Dashboard', component: DashboardPage, category: 'Overview' },
+  { path: '/employee-users', label: 'Employee Users', component: EmployeeUsersPage, category: 'Overview', adminOnly: true },
   { path: '/mailboxes', label: 'Mailbox List', component: MailboxListPage, category: 'Operations' },
   { path: '/mailboxes/:id', label: 'Mailbox Detail', component: MailboxDetailPage, category: 'Operations', sidebar: false },
   { path: '/templates', label: 'Template List', component: TemplateListPage, category: 'Operations' },
@@ -30,6 +31,5 @@ export const routes = [
   { path: '/audit-logs', label: 'Audit Logs', component: AuditLogsPage, category: 'Logs' },
   { path: '/reports', label: 'Reports', component: ReportsPage, category: 'Reports' },
   { path: '/reports/:id', label: 'Report Detail', component: ReportDetailPage, category: 'Reports', sidebar: false },
-  { path: '/employee-users', label: 'Employee Users', component: EmployeeUsersPage, category: 'System', adminOnly: true },
   { path: '/settings', label: 'Settings', component: SettingsPage, category: 'System' },
 ]
