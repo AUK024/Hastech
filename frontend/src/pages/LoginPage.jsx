@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
@@ -25,7 +26,7 @@ export function LoginPage() {
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    const result = await login(email)
+    const result = await login(email, password)
     if (!result.ok) {
       setError(result.error)
       return
@@ -37,7 +38,7 @@ export function LoginPage() {
     <section style={{ maxWidth: 520, margin: '0 auto', padding: 8 }}>
       <h2 style={{ marginTop: 0 }}>Admin Giriş</h2>
       <p style={{ marginTop: 0 }}>
-        Admin paneline erişim için izinli kullanıcı e-postası ile giriş yapın.
+        Admin paneline erişim için e-posta ile giriş yapın. Employee kullanıcılar için şifre zorunludur.
       </p>
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 10 }}>
         <label htmlFor="email">E-posta</label>
@@ -49,6 +50,15 @@ export function LoginPage() {
           placeholder="admin@hascelik.com"
           autoComplete="email"
           required
+        />
+        <label htmlFor="password">Şifre</label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Employee şifresi"
+          autoComplete="current-password"
         />
         <button type="submit">Giriş Yap</button>
       </form>

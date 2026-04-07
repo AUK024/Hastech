@@ -51,8 +51,9 @@ const readStoredUser = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser)
 
-  const login = async (email) => {
+  const login = async (email, password) => {
     const normalized = String(email || '').trim().toLowerCase()
+    const normalizedPassword = String(password || '')
     if (!normalized || !normalized.includes('@')) {
       return { ok: false, error: 'Geçerli bir e-posta giriniz.' }
     }
@@ -68,10 +69,14 @@ export function AuthProvider({ children }) {
       return { ok: true, role: 'admin' }
     }
 
+    if (!normalizedPassword) {
+      return { ok: false, error: 'Employee kullanıcı için şifre gerekli.' }
+    }
+
     try {
-      const res = await api.post('/employee-users/authorize', { email: normalized })
+      const res = await api.post('/employee-users/authorize', { email: normalized, password: normalizedPassword })
       if (!res.data?.authorized || res.data?.role !== 'employee') {
-        return { ok: false, error: 'Bu kullanıcı admin paneline yetkili değil.' }
+        return { ok: false, error: 'E-posta veya şifre hatalı.' }
       }
     } catch {
       return { ok: false, error: 'Kullanıcı doğrulanamadı. API bağlantısını kontrol edin.' }

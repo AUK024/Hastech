@@ -37,7 +37,9 @@ Not:
 ### Employee User Yönetimi
 - `Employee Users` ekranı sadece `admin` roldeki kullanıcıya açıktır.
 - Employee kullanıcılar admin tarafından oluşturulur, güncellenir ve silinir.
-- Login sırasında admin olmayan kullanıcılar backend’deki employee listesine göre doğrulanır.
+- Employee kullanıcı oluştururken admin bir şifre belirler.
+- Admin, employee kullanıcı için yeni şifre atayabilir (reset).
+- Login sırasında admin olmayan kullanıcılar e-posta + şifre ile backend’de doğrulanır.
 
 Backend env:
 - `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`

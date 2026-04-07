@@ -3,6 +3,7 @@ import { api } from '../services/api'
 
 const emptyForm = {
   email: '',
+  password: '',
   full_name: '',
   is_active: true,
 }
@@ -14,6 +15,7 @@ export function EmployeeUsersPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [resetPasswords, setResetPasswords] = useState({})
 
   const load = async () => {
     setLoading(true)
@@ -41,6 +43,7 @@ export function EmployeeUsersPage() {
     try {
       await api.post('/employee-users', {
         email: form.email,
+        password: form.password,
         full_name: form.full_name || null,
         is_active: form.is_active,
       })
@@ -51,6 +54,8 @@ export function EmployeeUsersPage() {
       const detail = err?.response?.data?.detail
       if (status === 409) {
         setError(detail || 'Bu e-posta zaten kayıtlı.')
+      } else if (status === 422) {
+        setError('Şifre en az 8 karakter olmalıdır.')
       } else if (status === 403) {
         setError('Bu işlem sadece admin kullanıcıya açıktır.')
       } else {
@@ -69,14 +74,20 @@ export function EmployeeUsersPage() {
     setError('')
     try {
       await api.put(`/employee-users/${row.id}`, {
+        password: resetPasswords[row.id] || undefined,
         full_name: row.full_name || null,
         is_active: row.is_active,
       })
+      setResetPasswords((prev) => ({ ...prev, [row.id]: '' }))
       setEditingId(null)
       await load()
     } catch (err) {
       const status = err?.response?.status
-      setError(status === 403 ? 'Bu işlem sadece admin kullanıcıya açıktır.' : 'Employee kullanıcı güncellenemedi.')
+      if (status === 422) {
+        setError('Yeni şifre en az 8 karakter olmalıdır.')
+      } else {
+        setError(status === 403 ? 'Bu işlem sadece admin kullanıcıya açıktır.' : 'Employee kullanıcı güncellenemedi.')
+      }
     }
   }
 
@@ -110,6 +121,15 @@ export function EmployeeUsersPage() {
           required
         />
         <input
+          type="password"
+          placeholder="Şifre (en az 8 karakter)"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+        <input
           placeholder="Ad Soyad (opsiyonel)"
           value={form.full_name}
           onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -135,6 +155,7 @@ export function EmployeeUsersPage() {
           <thead>
             <tr>
               <th>Email</th>
+              <th>Şifre</th>
               <th>Ad Soyad</th>
               <th>Durum</th>
               <th>Oluşturan Admin</th>
@@ -145,6 +166,20 @@ export function EmployeeUsersPage() {
             {items.map((x) => (
               <tr key={x.id}>
                 <td>{x.email}</td>
+                <td>
+                  {editingId === x.id ? (
+                    <input
+                      type="password"
+                      placeholder="Yeni şifre (opsiyonel)"
+                      value={resetPasswords[x.id] || ''}
+                      onChange={(e) => setResetPasswords((prev) => ({ ...prev, [x.id]: e.target.value }))}
+                      autoComplete="new-password"
+                      minLength={8}
+                    />
+                  ) : (
+                    '********'
+                  )}
+                </td>
                 <td>
                   {editingId === x.id ? (
                     <input
@@ -183,7 +218,7 @@ export function EmployeeUsersPage() {
             ))}
             {items.length === 0 ? (
               <tr>
-                <td colSpan="5">Kayıt bulunamadı.</td>
+                <td colSpan="6">Kayıt bulunamadı.</td>
               </tr>
             ) : null}
           </tbody>
