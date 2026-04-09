@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     graph_webhook_lifecycle_url: str = ''
     graph_subscription_expiry_minutes: int = 120
     graph_subscription_renew_threshold_minutes: int = 30
+    azure_translator_endpoint: str = 'https://api.cognitive.microsofttranslator.com'
+    azure_translator_key: str = ''
+    azure_translator_region: str = ''
 
     admin_user_emails: str = 'admin@hascelik.com'
     admin_user_domains: str = ''
