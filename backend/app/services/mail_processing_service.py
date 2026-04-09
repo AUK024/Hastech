@@ -7,6 +7,7 @@ from app.models.auto_reply_template import AutoReplyTemplate
 from app.repositories.auto_reply_log_repository import AutoReplyLogRepository
 from app.repositories.blocked_rule_repository import BlockedRuleRepository
 from app.repositories.incoming_email_repository import IncomingEmailRepository
+from app.repositories.mailbox_repository import MailboxRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.repositories.template_repository import TemplateRepository
 from app.services.rule_engine import RuleEngineService
@@ -30,9 +31,12 @@ class MailProcessingService:
         self.settings = SettingsService(SettingsRepository(db))
         self.incoming_repo = IncomingEmailRepository(db)
         self.reply_repo = AutoReplyLogRepository(db)
+        self.blocked_repo = BlockedRuleRepository(db)
+        self.mailbox_repo = MailboxRepository(db)
+        self.template_repo = TemplateRepository(db)
 
     def _pick_active_template(self) -> AutoReplyTemplate | None:
-        templates = TemplateRepository(self.db).list()
+        templates = self.template_repo.list()
         for tpl in templates:
             if tpl.is_active:
                 return tpl
@@ -47,8 +51,18 @@ class MailProcessingService:
         sender_email = message.get('sender_email', '').lower()
         conversation_id = message.get('conversation_id', message_id)
         body_preview = message.get('body_preview', '')
+        normalized_mailbox_email = mailbox_email.lower()
+        managed_mailbox_emails = {
+            mailbox.email.lower()
+            for mailbox in self.mailbox_repo.list()
+            if mailbox.is_active
+        }
+        mail_loop_guard_enabled = self.settings.get_bool('mail_loop_guard_enabled', True)
+        is_managed_mail_loop = mail_loop_guard_enabled and (
+            sender_email == normalized_mailbox_email or sender_email in managed_mailbox_emails
+        )
 
-        blocked_rules = BlockedRuleRepository(self.db).list()
+        blocked_rules = self.blocked_repo.list()
         is_blocked = self.rule_engine.is_sender_blocked(sender_email=sender_email, rules=blocked_rules)
 
         internal_domain = self.settings.get_value('internal_domain', 'hascelik.com')
@@ -81,6 +95,13 @@ class MailProcessingService:
             error_message=None,
         )
 
+        if is_managed_mail_loop:
+            return {
+                'status': 'skipped',
+                'reason': 'mail_loop_guard',
+                'incoming_email_id': incoming.id,
+            }
+
         if is_internal or is_blocked:
             return {
                 'status': 'skipped',
@@ -90,8 +111,15 @@ class MailProcessingService:
 
         prevent_duplicate_thread_reply = self.settings.get_bool('prevent_duplicate_thread_reply', True)
         only_first_mail_reply = self.settings.get_bool('only_first_mail_reply', True)
+        skip_if_thread_has_sent_reply = self.settings.get_bool('skip_if_thread_has_sent_reply', True)
         conversation_emails = self.incoming_repo.get_by_conversation(conversation_id)
         conversation_ids = [row.id for row in conversation_emails]
+
+        if skip_if_thread_has_sent_reply and self.graph_client.has_sent_reply_in_conversation(
+            mailbox_email=mailbox_email,
+            conversation_id=conversation_id,
+        ):
+            return {'status': 'skipped', 'reason': 'thread_has_sent_reply', 'incoming_email_id': incoming.id}
 
         if prevent_duplicate_thread_reply and self.reply_repo.has_successful_reply_for_conversation(conversation_ids):
             return {'status': 'skipped', 'reason': 'already_replied_thread', 'incoming_email_id': incoming.id}
