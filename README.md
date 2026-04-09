@@ -9,6 +9,7 @@ Kurumsal e-posta otomasyonu için FastAPI + Celery + PostgreSQL + React tabanlı
 - Config/database driven iş kuralı yönetimi
 - Admin panel API + React yönetim ekranları
 - Audit, webhook, gelen mail ve auto-reply logları
+- Tüm API eylemlerinin merkezi audit log kaydı (istek method/path/status/duration)
 
 ## Kurulum
 ```bash
