@@ -7,6 +7,7 @@ from app.models.auto_reply_log import AutoReplyLog
 from app.models.webhook_log import WebhookLog
 from app.models.audit_log import AuditLog
 from app.models.employee_user import EmployeeUser
+from app.models.graph_subscription import GraphSubscription
 
 __all__ = [
     'MonitoredMailbox',
@@ -18,4 +19,5 @@ __all__ = [
     'WebhookLog',
     'AuditLog',
     'EmployeeUser',
+    'GraphSubscription',
 ]
