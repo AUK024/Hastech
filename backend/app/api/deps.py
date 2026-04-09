@@ -19,3 +19,9 @@ def require_admin_user(x_admin_email: str = Header(default='', alias='X-Admin-Em
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlem sadece admin kullanıcıya açıktır')
 
     return normalized
+
+
+def resolve_tenant_code(x_tenant_code: str = Header(default='', alias='X-Tenant-Code')) -> str:
+    settings = get_settings()
+    normalized = x_tenant_code.strip().lower()
+    return normalized or settings.default_tenant_code.strip().lower()

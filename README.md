@@ -10,6 +10,7 @@ Kurumsal e-posta otomasyonu için FastAPI + Celery + PostgreSQL + React tabanlı
 - Admin panel API + React yönetim ekranları
 - Audit, webhook, gelen mail ve auto-reply logları
 - Tüm API eylemlerinin merkezi audit log kaydı (istek method/path/status/duration)
+- Tenant (firma) temel yönetimi: çoklu müşteri mimarisi için tenant kayıt/CRUD
 
 ## Kurulum
 ```bash
@@ -67,6 +68,16 @@ Not:
 - Admin panelde `System > Graph Subscriptions` ekranından subscription yönetimi yapılabilir.
 - Mailbox bazında resource otomatik `users/{graph_user_id or email}/messages` formatında oluşturulur.
 
+### Multi-Tenant Foundation
+- Admin API:
+1. `GET /api/v1/tenants`
+2. `POST /api/v1/tenants`
+3. `PUT /api/v1/tenants/{tenant_id}`
+4. `DELETE /api/v1/tenants/{tenant_id}`
+- Admin panel: `System > Tenants`
+- `X-Tenant-Code` header’ı API çağrılarında tenant context için kullanılabilir.
+- Varsayılan tenant kodu: `.env` içindeki `DEFAULT_TENANT_CODE` (default: `default`)
+
 Backend env:
 - `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`
 - `ADMIN_USER_DOMAINS=hascelik.com`
@@ -77,6 +88,7 @@ Backend env:
 - `AZURE_TRANSLATOR_ENDPOINT=https://api.cognitive.microsofttranslator.com`
 - `AZURE_TRANSLATOR_KEY=<azure-translator-key>`
 - `AZURE_TRANSLATOR_REGION=<azure-region>`
+- `DEFAULT_TENANT_CODE=default`
 
 ### Gerçek Dil/Çeviri Sağlayıcısı Aktivasyonu
 1. `.env` içine Azure Translator bilgilerini girin.

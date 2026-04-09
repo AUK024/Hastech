@@ -16,6 +16,7 @@ from app.api.routes import (
     logs,
     employee_users,
     graph_subscriptions,
+    tenants,
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(language_detection.router, prefix='/language-detection
 api_router.include_router(logs.router, prefix='/logs', tags=['logs'])
 api_router.include_router(employee_users.router, prefix='/employee-users', tags=['employee-users'])
 api_router.include_router(graph_subscriptions.router, prefix='/graph-subscriptions', tags=['graph-subscriptions'])
+api_router.include_router(tenants.router, prefix='/tenants', tags=['tenants'])

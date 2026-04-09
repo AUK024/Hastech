@@ -37,6 +37,7 @@ class Settings(BaseSettings):
 
     default_fallback_language: str = 'en'
     default_confidence_threshold: float = 0.70
+    default_tenant_code: str = 'default'
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
