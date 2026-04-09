@@ -53,9 +53,24 @@ Not:
 2. Monitored mailbox `graph_user_id` (GUID/UPN)
 - Opsiyonel güvenlik: `.env` üzerinde `GRAPH_WEBHOOK_CLIENT_STATE` tanımlanırsa gelen `clientState` bununla doğrulanır.
 
+### Graph Subscription Yönetimi
+- Admin API endpointleri:
+1. `GET /api/v1/graph-subscriptions`
+2. `POST /api/v1/graph-subscriptions/sync`
+3. `POST /api/v1/graph-subscriptions/renew-due`
+4. `POST /api/v1/graph-subscriptions/mailboxes/{mailbox_id}/subscribe`
+5. `POST /api/v1/graph-subscriptions/mailboxes/{mailbox_id}/renew`
+6. `DELETE /api/v1/graph-subscriptions/mailboxes/{mailbox_id}`
+- Admin panelde `System > Graph Subscriptions` ekranından subscription yönetimi yapılabilir.
+- Mailbox bazında resource otomatik `users/{graph_user_id or email}/messages` formatında oluşturulur.
+
 Backend env:
 - `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`
 - `ADMIN_USER_DOMAINS=hascelik.com`
+- `GRAPH_WEBHOOK_NOTIFICATION_URL=https://admin.example.com/api/v1/webhooks/graph`
+- `GRAPH_WEBHOOK_LIFECYCLE_URL=https://admin.example.com/api/v1/webhooks/lifecycle`
+- `GRAPH_SUBSCRIPTION_EXPIRY_MINUTES=120`
+- `GRAPH_SUBSCRIPTION_RENEW_THRESHOLD_MINUTES=30`
 
 ## Celery
 - Worker: `backend.app.workers.celery_app.celery_app`

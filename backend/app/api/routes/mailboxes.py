@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import db_session
+from app.repositories.graph_subscription_repository import GraphSubscriptionRepository
 from app.repositories.mailbox_repository import MailboxRepository
 from app.schemas.common import MessageResponse
 from app.schemas.monitored_mailbox import MonitoredMailboxCreate, MonitoredMailboxRead, MonitoredMailboxUpdate
@@ -41,5 +42,6 @@ def delete_mailbox(mailbox_id: int, db: Session = Depends(db_session)):
     obj = repo.get(mailbox_id)
     if not obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Mailbox not found')
+    GraphSubscriptionRepository(db).delete_by_mailbox_id(mailbox_id)
     repo.delete(obj)
     return {'message': 'Mailbox deleted'}

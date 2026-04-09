@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     graph_scope: str = 'https://graph.microsoft.com/.default'
     graph_base_url: str = 'https://graph.microsoft.com/v1.0'
     graph_webhook_client_state: str = ''
+    graph_webhook_notification_url: str = ''
+    graph_webhook_lifecycle_url: str = ''
+    graph_subscription_expiry_minutes: int = 120
+    graph_subscription_renew_threshold_minutes: int = 30
 
     admin_user_emails: str = 'admin@hascelik.com'
     admin_user_domains: str = ''
