@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 
 class MonitoredMailboxBase(BaseModel):
     email: EmailStr
+    graph_user_id: str | None = None
     display_name: str
     mailbox_type: str
     is_active: bool = True
@@ -15,6 +16,7 @@ class MonitoredMailboxCreate(MonitoredMailboxBase):
 
 
 class MonitoredMailboxUpdate(BaseModel):
+    graph_user_id: str | None = None
     display_name: str | None = None
     mailbox_type: str | None = None
     is_active: bool | None = None

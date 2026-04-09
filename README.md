@@ -45,6 +45,14 @@ Not:
 - `mail_loop_guard_enabled=true`: Tanımlı/aktif mailbox kaynaklı gönderiler için otomatik cevap üretmez (mail loop engeli).
 - `skip_if_thread_has_sent_reply=true`: Thread içinde Sent Items kaydı varsa (kullanıcı cevabı dahil) otomatik cevap üretmez.
 
+### Microsoft Graph Webhook Notları
+- Webhook endpoint: `POST /api/v1/webhooks/graph`
+- Graph payload içindeki `resource` alanından `user` ve `message` id parse edilir.
+- Mailbox eşlemesi önceliği:
+1. Monitored mailbox `email`
+2. Monitored mailbox `graph_user_id` (GUID/UPN)
+- Opsiyonel güvenlik: `.env` üzerinde `GRAPH_WEBHOOK_CLIENT_STATE` tanımlanırsa gelen `clientState` bununla doğrulanır.
+
 Backend env:
 - `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`
 - `ADMIN_USER_DOMAINS=hascelik.com`

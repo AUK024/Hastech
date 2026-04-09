@@ -5,6 +5,7 @@ import { useUI } from '../contexts/UIContext'
 
 const emptyForm = {
   email: '',
+  graph_user_id: '',
   display_name: '',
   mailbox_type: 'shared_mailbox',
   is_active: true,
@@ -40,13 +41,17 @@ export function MailboxListPage() {
 
   const submit = async (e) => {
     e.preventDefault()
-    await api.post('/mailboxes', form)
+    await api.post('/mailboxes', {
+      ...form,
+      graph_user_id: form.graph_user_id || null,
+    })
     setForm(emptyForm)
     load()
   }
 
   const saveEdit = async (row) => {
     await api.put(`/mailboxes/${row.id}`, {
+      graph_user_id: row.graph_user_id || null,
       display_name: row.display_name,
       mailbox_type: row.mailbox_type,
       is_active: row.is_active,
@@ -73,6 +78,7 @@ export function MailboxListPage() {
       <h2>Mailbox List</h2>
       <form onSubmit={submit} style={{ display: 'grid', gap: 8, maxWidth: 560 }}>
         <input placeholder="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input placeholder="graph_user_id (opsiyonel)" value={form.graph_user_id} onChange={(e) => setForm({ ...form, graph_user_id: e.target.value })} />
         <input placeholder="display_name" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required />
         <input placeholder="mailbox_type" value={form.mailbox_type} onChange={(e) => setForm({ ...form, mailbox_type: e.target.value })} required />
         <input placeholder="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -93,12 +99,13 @@ export function MailboxListPage() {
 
       <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
-          <tr><th>Email</th><th>Name</th><th>Type</th><th>Status</th><th>Auto Reply</th><th>Actions</th></tr>
+          <tr><th>Email</th><th>Graph User</th><th>Name</th><th>Type</th><th>Status</th><th>Auto Reply</th><th>Actions</th></tr>
         </thead>
         <tbody>
           {filtered.map((x) => (
             <tr key={x.id}>
               <td>{x.email}</td>
+              <td>{editingId === x.id ? <input value={x.graph_user_id || ''} onChange={(e) => patchRow(x.id, { graph_user_id: e.target.value })} /> : (x.graph_user_id || '-')}</td>
               <td>{editingId === x.id ? <input value={x.display_name} onChange={(e) => patchRow(x.id, { display_name: e.target.value })} /> : x.display_name}</td>
               <td>{editingId === x.id ? <input value={x.mailbox_type} onChange={(e) => patchRow(x.id, { mailbox_type: e.target.value })} /> : x.mailbox_type}</td>
               <td>{editingId === x.id ? <input type="checkbox" checked={x.is_active} onChange={(e) => patchRow(x.id, { is_active: e.target.checked })} /> : (x.is_active ? t('active') : t('inactive'))}</td>

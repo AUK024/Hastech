@@ -6,5 +6,6 @@ celery_app = Celery(
     'hascelik_mail_worker',
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
+    include=['app.workers.tasks'],
 )
 celery_app.conf.update(task_track_started=True, task_serializer='json', result_serializer='json')
