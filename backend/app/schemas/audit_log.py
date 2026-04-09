@@ -6,6 +6,7 @@ class AuditLogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    tenant_code: str
     module_name: str
     action_name: str
     payload: dict

@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from app.api.deps import db_session
+from app.api.deps import db_session, resolve_tenant_code
 from app.models.incoming_email import IncomingEmail
 
 router = APIRouter()
 
 
 @router.get('/domains')
-def report_domains(db: Session = Depends(db_session)) -> dict:
+def report_domains(db: Session = Depends(db_session), tenant_code: str = Depends(resolve_tenant_code)) -> dict:
     rows = db.execute(
         select(func.split_part(IncomingEmail.sender_email, '@', 2).label('domain'), func.count(IncomingEmail.id))
+        .where(IncomingEmail.tenant_code == tenant_code)
         .group_by('domain')
         .order_by(func.count(IncomingEmail.id).desc())
         .limit(25)
@@ -19,9 +20,10 @@ def report_domains(db: Session = Depends(db_session)) -> dict:
 
 
 @router.get('/personnel')
-def report_personnel(db: Session = Depends(db_session)) -> dict:
+def report_personnel(db: Session = Depends(db_session), tenant_code: str = Depends(resolve_tenant_code)) -> dict:
     rows = db.execute(
         select(IncomingEmail.mailbox_id, func.count(IncomingEmail.id))
+        .where(IncomingEmail.tenant_code == tenant_code)
         .group_by(IncomingEmail.mailbox_id)
         .order_by(func.count(IncomingEmail.id).desc())
         .limit(25)

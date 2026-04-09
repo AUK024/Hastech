@@ -7,28 +7,66 @@ from app.schemas.monitored_mailbox import MonitoredMailboxCreate, MonitoredMailb
 
 
 class MailboxRepository(RepositoryBase):
-    def list(self) -> list[MonitoredMailbox]:
+    def list_all(self) -> list[MonitoredMailbox]:
         return self.db.scalars(select(MonitoredMailbox).order_by(MonitoredMailbox.id.desc())).all()
 
-    def list_active(self) -> list[MonitoredMailbox]:
+    def list_active_all(self) -> list[MonitoredMailbox]:
         return self.db.scalars(
-            select(MonitoredMailbox).where(MonitoredMailbox.is_active.is_(True)).order_by(MonitoredMailbox.id.desc())
+            select(MonitoredMailbox)
+            .where(MonitoredMailbox.is_active.is_(True))
+            .order_by(MonitoredMailbox.id.desc())
         ).all()
 
-    def get(self, mailbox_id: int) -> MonitoredMailbox | None:
-        return self.db.scalar(select(MonitoredMailbox).where(MonitoredMailbox.id == mailbox_id))
+    def list(self, tenant_code: str = 'default') -> list[MonitoredMailbox]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalars(
+            select(MonitoredMailbox)
+            .where(MonitoredMailbox.tenant_code == normalized_tenant)
+            .order_by(MonitoredMailbox.id.desc())
+        ).all()
 
-    def get_by_email(self, email: str) -> MonitoredMailbox | None:
-        return self.db.scalar(select(MonitoredMailbox).where(MonitoredMailbox.email == email.lower()))
+    def list_active(self, tenant_code: str = 'default') -> list[MonitoredMailbox]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalars(
+            select(MonitoredMailbox)
+            .where(MonitoredMailbox.tenant_code == normalized_tenant)
+            .where(MonitoredMailbox.is_active.is_(True))
+            .order_by(MonitoredMailbox.id.desc())
+        ).all()
 
-    def get_by_graph_user_id(self, graph_user_id: str) -> MonitoredMailbox | None:
+    def get(self, mailbox_id: int, tenant_code: str = 'default') -> MonitoredMailbox | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(MonitoredMailbox).where(
+                MonitoredMailbox.id == mailbox_id,
+                MonitoredMailbox.tenant_code == normalized_tenant,
+            )
+        )
+
+    def get_by_email(self, email: str, tenant_code: str = 'default') -> MonitoredMailbox | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(MonitoredMailbox).where(
+                MonitoredMailbox.email == email.lower(),
+                MonitoredMailbox.tenant_code == normalized_tenant,
+            )
+        )
+
+    def get_by_graph_user_id(self, graph_user_id: str, tenant_code: str = 'default') -> MonitoredMailbox | None:
         normalized = graph_user_id.strip()
         if not normalized:
             return None
-        return self.db.scalar(select(MonitoredMailbox).where(MonitoredMailbox.graph_user_id == normalized))
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(MonitoredMailbox).where(
+                MonitoredMailbox.graph_user_id == normalized,
+                MonitoredMailbox.tenant_code == normalized_tenant,
+            )
+        )
 
-    def create(self, data: MonitoredMailboxCreate) -> MonitoredMailbox:
-        mailbox = MonitoredMailbox(**data.model_dump())
+    def create(self, data: MonitoredMailboxCreate, tenant_code: str = 'default') -> MonitoredMailbox:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        mailbox = MonitoredMailbox(tenant_code=normalized_tenant, **data.model_dump())
         self.db.add(mailbox)
         self.db.commit()
         self.db.refresh(mailbox)

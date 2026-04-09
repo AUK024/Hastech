@@ -7,6 +7,7 @@ from app.db.base import Base
 class AutoReplyLog(Base):
     __tablename__ = 'auto_reply_logs'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     incoming_email_id: Mapped[int] = mapped_column(ForeignKey('incoming_emails.id'))
     template_id: Mapped[int] = mapped_column(ForeignKey('auto_reply_templates.id'))
     translated_subject: Mapped[str | None] = mapped_column(Text, nullable=True)

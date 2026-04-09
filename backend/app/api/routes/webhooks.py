@@ -72,32 +72,42 @@ def _verify_client_state(client_state: str | None) -> bool:
 
 def _queue_graph_event(db: Session, mailbox: MonitoredMailbox, message_id: str, source_payload: dict) -> None:
     WebhookLogRepository(db).create(
+        tenant_code=mailbox.tenant_code,
         event_type='graph_mail_event',
         payload=source_payload,
         status='queued',
         error_message=None,
     )
     AuditLogRepository(db).create(
+        tenant_code=mailbox.tenant_code,
         module_name='webhook',
         action_name='graph_event_received',
         payload={
             'mailbox_id': mailbox.id,
             'mailbox_email': mailbox.email,
             'message_id': message_id,
+            'tenant_code': mailbox.tenant_code,
         },
         result='queued',
     )
-    process_graph_mail_event.delay(mailbox_id=mailbox.id, mailbox_email=mailbox.email, message_id=message_id)
+    process_graph_mail_event.delay(
+        mailbox_id=mailbox.id,
+        mailbox_email=mailbox.email,
+        message_id=message_id,
+        tenant_code=mailbox.tenant_code,
+    )
 
 
-def _mark_ignored(db: Session, payload: dict, reason: str) -> None:
+def _mark_ignored(db: Session, payload: dict, reason: str, tenant_code: str = 'default') -> None:
     WebhookLogRepository(db).create(
+        tenant_code=tenant_code,
         event_type='graph_mail_event',
         payload=payload,
         status='ignored',
         error_message=reason,
     )
     AuditLogRepository(db).create(
+        tenant_code=tenant_code,
         module_name='webhook',
         action_name='graph_event_ignored',
         payload=payload,
@@ -114,7 +124,7 @@ async def graph_validation(validationToken: str = Query(alias='validationToken')
 async def graph_webhook(request: Request, db: Session = Depends(db_session)) -> dict[str, int | str]:
     payload = await request.json()
     notifications = _iter_graph_notifications(payload)
-    mailboxes = MailboxRepository(db).list_active()
+    mailboxes = MailboxRepository(db).list_active_all()
 
     queued = 0
     ignored = 0
@@ -127,10 +137,11 @@ async def graph_webhook(request: Request, db: Session = Depends(db_session)) -> 
         # Backward compatibility path.
         if all(key in notification for key in ('mailbox_id', 'mailbox_email', 'message_id')):
             mailbox_id = int(notification.get('mailbox_id', 0))
-            mailbox = MailboxRepository(db).get(mailbox_id)
+            tenant_code = str(notification.get('tenant_code', 'default')).strip().lower() or 'default'
+            mailbox = MailboxRepository(db).get(mailbox_id, tenant_code=tenant_code)
             message_id = str(notification.get('message_id', '')).strip()
             if not mailbox or not message_id:
-                _mark_ignored(db, notification, 'invalid_legacy_payload')
+                _mark_ignored(db, notification, 'invalid_legacy_payload', tenant_code=tenant_code)
                 ignored += 1
                 continue
             _queue_graph_event(db, mailbox, message_id, notification)

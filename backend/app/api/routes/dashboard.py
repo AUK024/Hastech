@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, literal_column, select
 from sqlalchemy.orm import Session
-from app.api.deps import db_session
+from app.api.deps import db_session, resolve_tenant_code
 from app.models.auto_reply_log import AutoReplyLog
 from app.models.incoming_email import IncomingEmail
 from app.models.monitored_mailbox import MonitoredMailbox
@@ -11,27 +11,46 @@ router = APIRouter()
 
 
 @router.get('/')
-def dashboard_stats(db: Session = Depends(db_session)) -> dict:
+def dashboard_stats(
+    db: Session = Depends(db_session),
+    tenant_code: str = Depends(resolve_tenant_code),
+) -> dict:
     now_utc = datetime.now(timezone.utc)
     start_of_day = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
     trend_start = start_of_day - timedelta(days=13)
 
-    incoming_mail_count = db.scalar(select(func.count(IncomingEmail.id))) or 0
+    incoming_mail_count = (
+        db.scalar(select(func.count(IncomingEmail.id)).where(IncomingEmail.tenant_code == tenant_code)) or 0
+    )
     daily_external = (
         db.scalar(
             select(func.count(IncomingEmail.id))
+            .where(IncomingEmail.tenant_code == tenant_code)
             .where(IncomingEmail.is_internal.is_(False))
             .where(IncomingEmail.received_at >= start_of_day)
         )
         or 0
     )
-    replied_mail_count = db.scalar(select(func.count(AutoReplyLog.id)).where(AutoReplyLog.reply_sent.is_(True))) or 0
+    replied_mail_count = (
+        db.scalar(
+            select(func.count(AutoReplyLog.id))
+            .where(AutoReplyLog.tenant_code == tenant_code)
+            .where(AutoReplyLog.reply_sent.is_(True))
+        )
+        or 0
+    )
     daily_incoming = (
-        db.scalar(select(func.count(IncomingEmail.id)).where(IncomingEmail.received_at >= start_of_day)) or 0
+        db.scalar(
+            select(func.count(IncomingEmail.id))
+            .where(IncomingEmail.tenant_code == tenant_code)
+            .where(IncomingEmail.received_at >= start_of_day)
+        )
+        or 0
     )
     daily_auto_reply_sent = (
         db.scalar(
             select(func.count(AutoReplyLog.id))
+            .where(AutoReplyLog.tenant_code == tenant_code)
             .where(AutoReplyLog.reply_sent.is_(True))
             .where(AutoReplyLog.sent_at.is_not(None))
             .where(AutoReplyLog.sent_at >= start_of_day)
@@ -41,6 +60,7 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     daily_errors = (
         db.scalar(
             select(func.count(IncomingEmail.id))
+            .where(IncomingEmail.tenant_code == tenant_code)
             .where(IncomingEmail.processing_status == 'error')
             .where(IncomingEmail.received_at >= start_of_day)
         )
@@ -49,6 +69,7 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
 
     lang_rows = db.execute(
         select(IncomingEmail.detected_language, func.count(IncomingEmail.id))
+        .where(IncomingEmail.tenant_code == tenant_code)
         .group_by(IncomingEmail.detected_language)
         .order_by(func.count(IncomingEmail.id).desc())
         .limit(10)
@@ -56,11 +77,13 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
 
     incoming_lang_rows = db.execute(
         select(IncomingEmail.detected_language, func.count(IncomingEmail.id))
+        .where(IncomingEmail.tenant_code == tenant_code)
         .where(IncomingEmail.received_at >= start_of_day)
         .group_by(IncomingEmail.detected_language)
     ).all()
     replied_lang_rows = db.execute(
         select(AutoReplyLog.target_language, func.count(AutoReplyLog.id))
+        .where(AutoReplyLog.tenant_code == tenant_code)
         .where(AutoReplyLog.reply_sent.is_(True))
         .where(AutoReplyLog.sent_at.is_not(None))
         .where(AutoReplyLog.sent_at >= start_of_day)
@@ -82,6 +105,7 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     incoming_day_expr = func.date_trunc('day', IncomingEmail.received_at).label('incoming_day')
     incoming_daily_rows = db.execute(
         select(incoming_day_expr, func.count(IncomingEmail.id))
+        .where(IncomingEmail.tenant_code == tenant_code)
         .where(IncomingEmail.received_at >= trend_start)
         .group_by(incoming_day_expr)
         .order_by(incoming_day_expr.asc())
@@ -89,6 +113,7 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     replied_day_expr = func.date_trunc('day', AutoReplyLog.sent_at).label('replied_day')
     replied_daily_rows = db.execute(
         select(replied_day_expr, func.count(AutoReplyLog.id))
+        .where(AutoReplyLog.tenant_code == tenant_code)
         .where(AutoReplyLog.reply_sent.is_(True))
         .where(AutoReplyLog.sent_at.is_not(None))
         .where(AutoReplyLog.sent_at >= trend_start)
@@ -120,6 +145,7 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     domain_count_expr = func.count(IncomingEmail.id).label('domain_count')
     top_domain_rows = db.execute(
         select(domain_expr, domain_count_expr)
+        .where(IncomingEmail.tenant_code == tenant_code)
         .where(IncomingEmail.sender_email.contains('@'))
         .group_by(domain_expr)
         .order_by(domain_count_expr.desc())
@@ -129,6 +155,8 @@ def dashboard_stats(db: Session = Depends(db_session)) -> dict:
     top_mailbox_rows = db.execute(
         select(MonitoredMailbox.email, func.count(IncomingEmail.id))
         .join(MonitoredMailbox, MonitoredMailbox.id == IncomingEmail.mailbox_id)
+        .where(IncomingEmail.tenant_code == tenant_code)
+        .where(MonitoredMailbox.tenant_code == tenant_code)
         .group_by(MonitoredMailbox.email)
         .order_by(func.count(IncomingEmail.id).desc())
         .limit(10)

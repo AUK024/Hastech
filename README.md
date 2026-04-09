@@ -10,7 +10,9 @@ Kurumsal e-posta otomasyonu için FastAPI + Celery + PostgreSQL + React tabanlı
 - Admin panel API + React yönetim ekranları
 - Audit, webhook, gelen mail ve auto-reply logları
 - Tüm API eylemlerinin merkezi audit log kaydı (istek method/path/status/duration)
+- CRUD ve worker iş akışları için detaylı audit action logları
 - Tenant (firma) temel yönetimi: çoklu müşteri mimarisi için tenant kayıt/CRUD
+- Tenant-aware veri izolasyonu (mailbox/template/rule/employee/incoming/reply/log/subscription)
 - Dashboard üzerinde günlük gelen/cevaplanan mail metrikleri + 14 günlük trend + dil performansı
 
 ## Kurulum
@@ -32,6 +34,7 @@ Vite env değişkenleri:
 
 - `VITE_ALLOWED_ADMIN_EMAILS=admin@hascelik.com,ops@hascelik.com`
 - `VITE_ALLOWED_ADMIN_DOMAINS=hascelik.com`
+- `VITE_TENANT_CODE=default`
 
 Not:
 - En az bir liste tanımlanabilir; tanımlı değilse varsayılan kullanıcı `admin@hascelik.com` olur.
@@ -47,6 +50,8 @@ Not:
 ### Otomatik Yanıt Koruma Kuralları
 - `mail_loop_guard_enabled=true`: Tanımlı/aktif mailbox kaynaklı gönderiler için otomatik cevap üretmez (mail loop engeli).
 - `skip_if_thread_has_sent_reply=true`: Thread içinde Sent Items kaydı varsa (kullanıcı cevabı dahil) otomatik cevap üretmez.
+- `non_turkish_only=true`: Türkçe tespit edilen maillere otomatik cevap üretmez.
+- `turkish_language_codes=tr,tr-tr`: Türkçe için kabul edilen dil kodları.
 - `language_detection_provider=mock|azure_translator`: Dil tespiti sağlayıcısını seçer.
 - `translation_provider=mock|azure_translator`: Çeviri sağlayıcısını seçer.
 
@@ -81,6 +86,7 @@ Not:
 4. `DELETE /api/v1/tenants/{tenant_id}`
 - Admin panel: `System > Tenants`
 - `X-Tenant-Code` header’ı API çağrılarında tenant context için kullanılabilir.
+- Tenant header gönderildiğinde listeler tenant bazında izole döner (mailboxes/templates/rules/employee users/logs/dashboard).
 - Varsayılan tenant kodu: `.env` içindeki `DEFAULT_TENANT_CODE` (default: `default`)
 
 Backend env:

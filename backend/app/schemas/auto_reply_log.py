@@ -6,6 +6,7 @@ class AutoReplyLogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    tenant_code: str
     incoming_email_id: int
     template_id: int
     translated_subject: str | None = None

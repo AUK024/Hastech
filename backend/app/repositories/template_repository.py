@@ -5,14 +5,26 @@ from app.schemas.auto_reply_template import AutoReplyTemplateCreate, AutoReplyTe
 
 
 class TemplateRepository(RepositoryBase):
-    def list(self) -> list[AutoReplyTemplate]:
-        return self.db.scalars(select(AutoReplyTemplate).order_by(AutoReplyTemplate.id.desc())).all()
+    def list(self, tenant_code: str = 'default') -> list[AutoReplyTemplate]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalars(
+            select(AutoReplyTemplate)
+            .where(AutoReplyTemplate.tenant_code == normalized_tenant)
+            .order_by(AutoReplyTemplate.id.desc())
+        ).all()
 
-    def get(self, template_id: int) -> AutoReplyTemplate | None:
-        return self.db.scalar(select(AutoReplyTemplate).where(AutoReplyTemplate.id == template_id))
+    def get(self, template_id: int, tenant_code: str = 'default') -> AutoReplyTemplate | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(AutoReplyTemplate).where(
+                AutoReplyTemplate.id == template_id,
+                AutoReplyTemplate.tenant_code == normalized_tenant,
+            )
+        )
 
-    def create(self, data: AutoReplyTemplateCreate) -> AutoReplyTemplate:
-        obj = AutoReplyTemplate(**data.model_dump())
+    def create(self, data: AutoReplyTemplateCreate, tenant_code: str = 'default') -> AutoReplyTemplate:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        obj = AutoReplyTemplate(tenant_code=normalized_tenant, **data.model_dump())
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)

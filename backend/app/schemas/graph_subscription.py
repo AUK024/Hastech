@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class GraphSubscriptionBase(BaseModel):
+    tenant_code: str = 'default'
     mailbox_id: int
     graph_subscription_id: str | None = None
     resource: str

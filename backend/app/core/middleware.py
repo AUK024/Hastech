@@ -17,7 +17,7 @@ def register_middlewares(app: FastAPI) -> None:
             return
 
         admin_email = request.headers.get('X-Admin-Email', '').strip().lower()
-        tenant_code = request.headers.get('X-Tenant-Code', '').strip().lower()
+        tenant_code = request.headers.get('X-Tenant-Code', '').strip().lower() or 'default'
         result = 'success' if status_code < 400 else 'error'
         payload = {
             'method': request.method,
@@ -26,17 +26,18 @@ def register_middlewares(app: FastAPI) -> None:
             'status_code': status_code,
             'duration_ms': round(duration_ms, 2),
             'admin_email': admin_email or None,
-            'tenant_code': tenant_code or None,
+            'tenant_code': tenant_code,
             'client_ip': request.client.host if request.client else None,
             'user_agent': request.headers.get('user-agent', ''),
         }
 
         db = SessionLocal()
         try:
-            AuditLogRepository(db).create(
-                module_name='api_request',
-                action_name=f'{request.method} {request.url.path}',
-                payload=payload,
+                AuditLogRepository(db).create(
+                    tenant_code=tenant_code,
+                    module_name='api_request',
+                    action_name=f'{request.method} {request.url.path}',
+                    payload=payload,
                 result=result,
             )
         except Exception:

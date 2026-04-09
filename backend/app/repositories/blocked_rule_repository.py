@@ -5,14 +5,26 @@ from app.schemas.blocked_sender_rule import BlockedSenderRuleCreate, BlockedSend
 
 
 class BlockedRuleRepository(RepositoryBase):
-    def list(self) -> list[BlockedSenderRule]:
-        return self.db.scalars(select(BlockedSenderRule).order_by(BlockedSenderRule.id.desc())).all()
+    def list(self, tenant_code: str = 'default') -> list[BlockedSenderRule]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalars(
+            select(BlockedSenderRule)
+            .where(BlockedSenderRule.tenant_code == normalized_tenant)
+            .order_by(BlockedSenderRule.id.desc())
+        ).all()
 
-    def get(self, rule_id: int) -> BlockedSenderRule | None:
-        return self.db.scalar(select(BlockedSenderRule).where(BlockedSenderRule.id == rule_id))
+    def get(self, rule_id: int, tenant_code: str = 'default') -> BlockedSenderRule | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(BlockedSenderRule).where(
+                BlockedSenderRule.id == rule_id,
+                BlockedSenderRule.tenant_code == normalized_tenant,
+            )
+        )
 
-    def create(self, data: BlockedSenderRuleCreate) -> BlockedSenderRule:
-        obj = BlockedSenderRule(**data.model_dump())
+    def create(self, data: BlockedSenderRuleCreate, tenant_code: str = 'default') -> BlockedSenderRule:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        obj = BlockedSenderRule(tenant_code=normalized_tenant, **data.model_dump())
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)

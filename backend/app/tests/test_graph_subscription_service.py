@@ -52,17 +52,21 @@ class FakeMailboxRepo:
     def __init__(self, items: list[SimpleNamespace]):
         self.items = items
 
-    def get(self, mailbox_id: int):
+    def get(self, mailbox_id: int, tenant_code: str = 'default'):
         for item in self.items:
-            if item.id == mailbox_id:
+            if item.id == mailbox_id and getattr(item, 'tenant_code', 'default') == tenant_code:
                 return item
         return None
 
-    def list(self):
-        return self.items
+    def list(self, tenant_code: str = 'default'):
+        return [item for item in self.items if getattr(item, 'tenant_code', 'default') == tenant_code]
 
-    def list_active(self):
-        return [item for item in self.items if item.is_active]
+    def list_active(self, tenant_code: str = 'default'):
+        return [
+            item
+            for item in self.items
+            if item.is_active and getattr(item, 'tenant_code', 'default') == tenant_code
+        ]
 
 
 class FakeSubscriptionRepo:
@@ -70,8 +74,11 @@ class FakeSubscriptionRepo:
         self.rows = {}
         self.sequence = 1
 
-    def get_by_mailbox_id(self, mailbox_id: int):
-        return self.rows.get(mailbox_id)
+    def get_by_mailbox_id(self, mailbox_id: int, tenant_code: str = 'default'):
+        row = self.rows.get(mailbox_id)
+        if row and getattr(row, 'tenant_code', 'default') == tenant_code:
+            return row
+        return None
 
     def create(self, data):
         payload = data.model_dump()
@@ -87,11 +94,12 @@ class FakeSubscriptionRepo:
         self.rows[obj.mailbox_id] = obj
         return obj
 
-    def list_due_for_renewal(self, renew_before: datetime):
+    def list_due_for_renewal(self, renew_before: datetime, tenant_code: str = 'default'):
         due = []
         for row in self.rows.values():
             if (
-                row.is_active
+                getattr(row, 'tenant_code', 'default') == tenant_code
+                and row.is_active
                 and row.graph_subscription_id
                 and row.expiration_datetime
                 and row.expiration_datetime <= renew_before
@@ -118,7 +126,7 @@ def build_service(mailboxes: list[SimpleNamespace]) -> tuple[GraphSubscriptionSe
 
 
 def test_subscribe_mailbox_creates_graph_subscription() -> None:
-    mailbox = SimpleNamespace(id=1, email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
+    mailbox = SimpleNamespace(id=1, tenant_code='default', email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
     service, graph_client, _ = build_service([mailbox])
 
     created = service.subscribe_mailbox(1)
@@ -131,12 +139,13 @@ def test_subscribe_mailbox_creates_graph_subscription() -> None:
 
 
 def test_subscribe_mailbox_renews_existing_active_subscription() -> None:
-    mailbox = SimpleNamespace(id=1, email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
+    mailbox = SimpleNamespace(id=1, tenant_code='default', email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
     service, graph_client, sub_repo = build_service([mailbox])
 
     current = datetime.now(timezone.utc) + timedelta(minutes=5)
     sub_repo.rows[1] = SimpleNamespace(
         id=1,
+        tenant_code='default',
         mailbox_id=1,
         graph_subscription_id='sub-existing',
         resource='users/guid-1/messages',
@@ -160,12 +169,13 @@ def test_subscribe_mailbox_renews_existing_active_subscription() -> None:
 
 
 def test_renew_due_only_renews_expiring_subscriptions() -> None:
-    mailbox = SimpleNamespace(id=1, email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
+    mailbox = SimpleNamespace(id=1, tenant_code='default', email='sales@hascelik.com', graph_user_id='guid-1', is_active=True)
     service, graph_client, sub_repo = build_service([mailbox])
 
     now = datetime.now(timezone.utc)
     sub_repo.rows[1] = SimpleNamespace(
         id=1,
+        tenant_code='default',
         mailbox_id=1,
         graph_subscription_id='sub-due',
         resource='users/guid-1/messages',
@@ -180,6 +190,7 @@ def test_renew_due_only_renews_expiring_subscriptions() -> None:
     )
     sub_repo.rows[2] = SimpleNamespace(
         id=2,
+        tenant_code='default',
         mailbox_id=2,
         graph_subscription_id='sub-later',
         resource='users/ops/messages',

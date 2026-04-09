@@ -7,6 +7,7 @@ from app.db.base import Base
 class WebhookLog(Base):
     __tablename__ = 'webhook_logs'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     event_type: Mapped[str] = mapped_column(String(120))
     payload: Mapped[dict] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(50))

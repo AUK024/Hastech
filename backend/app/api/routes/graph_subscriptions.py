@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.api.deps import db_session, require_admin_user
+from app.api.audit import safe_audit_log
+from app.api.deps import db_session, require_admin_user, resolve_tenant_code
 from app.integrations.microsoft_graph.client import GraphClient
 from app.repositories.graph_subscription_repository import GraphSubscriptionRepository
 from app.repositories.mailbox_repository import MailboxRepository
@@ -38,28 +39,61 @@ def _action_result(
 def list_graph_subscriptions(
     db: Session = Depends(db_session),
     _: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
-    return GraphSubscriptionRepository(db).list()
+    return GraphSubscriptionRepository(db).list(tenant_code=tenant_code)
 
 
 @router.post('/sync', response_model=GraphSubscriptionBatchResponse)
 def sync_graph_subscriptions(
     force_recreate: bool = Query(default=False),
     db: Session = Depends(db_session),
-    _: str = Depends(require_admin_user),
+    admin_email: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
     service = GraphSubscriptionService(db=db, graph_client=GraphClient())
-    return service.sync_active_mailboxes(force_recreate=force_recreate)
+    result = service.sync_active_mailboxes(force_recreate=force_recreate, tenant_code=tenant_code)
+    safe_audit_log(
+        db,
+        tenant_code=tenant_code,
+        module_name='graph_subscriptions',
+        action_name='sync',
+        payload={
+            'force_recreate': force_recreate,
+            'admin_email': admin_email,
+            'total': result['total'],
+            'success': result['success'],
+            'failed': result['failed'],
+        },
+        result='success' if result['failed'] == 0 else 'partial',
+    )
+    return result
 
 
 @router.post('/renew-due', response_model=GraphSubscriptionBatchResponse)
 def renew_due_graph_subscriptions(
     within_minutes: int | None = Query(default=None, ge=1, le=1440),
     db: Session = Depends(db_session),
-    _: str = Depends(require_admin_user),
+    admin_email: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
     service = GraphSubscriptionService(db=db, graph_client=GraphClient())
-    return service.renew_due(within_minutes=within_minutes)
+    result = service.renew_due(within_minutes=within_minutes, tenant_code=tenant_code)
+    safe_audit_log(
+        db,
+        tenant_code=tenant_code,
+        module_name='graph_subscriptions',
+        action_name='renew_due',
+        payload={
+            'within_minutes': within_minutes,
+            'admin_email': admin_email,
+            'total': result['total'],
+            'success': result['success'],
+            'failed': result['failed'],
+        },
+        result='success' if result['failed'] == 0 else 'partial',
+    )
+    return result
 
 
 @router.post('/mailboxes/{mailbox_id}/subscribe', response_model=GraphSubscriptionActionResult)
@@ -67,14 +101,23 @@ def subscribe_mailbox(
     mailbox_id: int,
     force_recreate: bool = Query(default=False),
     db: Session = Depends(db_session),
-    _: str = Depends(require_admin_user),
+    admin_email: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
     service = GraphSubscriptionService(db=db, graph_client=GraphClient())
-    mailbox = MailboxRepository(db).get(mailbox_id)
+    mailbox = MailboxRepository(db).get(mailbox_id, tenant_code=tenant_code)
     mailbox_email = mailbox.email if mailbox else f'mailbox:{mailbox_id}'
 
     try:
-        subscription = service.subscribe_mailbox(mailbox_id, force_recreate=force_recreate)
+        subscription = service.subscribe_mailbox(mailbox_id, force_recreate=force_recreate, tenant_code=tenant_code)
+        safe_audit_log(
+            db,
+            tenant_code=tenant_code,
+            module_name='graph_subscriptions',
+            action_name='subscribe_mailbox',
+            payload={'mailbox_id': mailbox_id, 'mailbox_email': mailbox_email, 'admin_email': admin_email},
+            result='success',
+        )
         return _action_result(
             mailbox_id=mailbox_id,
             mailbox_email=mailbox_email,
@@ -94,14 +137,23 @@ def subscribe_mailbox(
 def renew_mailbox_subscription(
     mailbox_id: int,
     db: Session = Depends(db_session),
-    _: str = Depends(require_admin_user),
+    admin_email: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
     service = GraphSubscriptionService(db=db, graph_client=GraphClient())
-    mailbox = MailboxRepository(db).get(mailbox_id)
+    mailbox = MailboxRepository(db).get(mailbox_id, tenant_code=tenant_code)
     mailbox_email = mailbox.email if mailbox else f'mailbox:{mailbox_id}'
 
     try:
-        subscription = service.renew_mailbox(mailbox_id)
+        subscription = service.renew_mailbox(mailbox_id, tenant_code=tenant_code)
+        safe_audit_log(
+            db,
+            tenant_code=tenant_code,
+            module_name='graph_subscriptions',
+            action_name='renew_mailbox',
+            payload={'mailbox_id': mailbox_id, 'mailbox_email': mailbox_email, 'admin_email': admin_email},
+            result='success',
+        )
         return _action_result(
             mailbox_id=mailbox_id,
             mailbox_email=mailbox_email,
@@ -121,11 +173,12 @@ def renew_mailbox_subscription(
 def unsubscribe_mailbox(
     mailbox_id: int,
     db: Session = Depends(db_session),
-    _: str = Depends(require_admin_user),
+    admin_email: str = Depends(require_admin_user),
+    tenant_code: str = Depends(resolve_tenant_code),
 ):
     service = GraphSubscriptionService(db=db, graph_client=GraphClient())
     try:
-        service.unsubscribe_mailbox(mailbox_id)
+        service.unsubscribe_mailbox(mailbox_id, tenant_code=tenant_code)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -133,4 +186,12 @@ def unsubscribe_mailbox(
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
+    safe_audit_log(
+        db,
+        tenant_code=tenant_code,
+        module_name='graph_subscriptions',
+        action_name='unsubscribe_mailbox',
+        payload={'mailbox_id': mailbox_id, 'admin_email': admin_email},
+        result='success',
+    )
     return {'message': 'Graph subscription removed'}
