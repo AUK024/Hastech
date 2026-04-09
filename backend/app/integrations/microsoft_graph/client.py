@@ -46,3 +46,21 @@ class GraphClient:
         with httpx.Client(timeout=30.0) as client:
             response = client.post(url, headers=self._headers(), json=payload)
             response.raise_for_status()
+
+    def has_sent_reply_in_conversation(self, mailbox_email: str, conversation_id: str) -> bool:
+        if not self.settings.graph_tenant_id:
+            return False
+
+        escaped_conversation_id = conversation_id.replace("'", "''")
+        params = {
+            '$top': '1',
+            '$select': 'id,conversationId',
+            '$filter': f"conversationId eq '{escaped_conversation_id}'",
+        }
+        url = f'{self.settings.graph_base_url}/users/{mailbox_email}/mailFolders/SentItems/messages'
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(url, headers=self._headers(), params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        return len(data.get('value', [])) > 0

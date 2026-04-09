@@ -41,6 +41,10 @@ Not:
 - Admin, employee kullanıcı için yeni şifre atayabilir (reset).
 - Login sırasında admin olmayan kullanıcılar e-posta + şifre ile backend’de doğrulanır.
 
+### Otomatik Yanıt Koruma Kuralları
+- `mail_loop_guard_enabled=true`: Tanımlı/aktif mailbox kaynaklı gönderiler için otomatik cevap üretmez (mail loop engeli).
+- `skip_if_thread_has_sent_reply=true`: Thread içinde Sent Items kaydı varsa (kullanıcı cevabı dahil) otomatik cevap üretmez.
+
 Backend env:
 - `ADMIN_USER_EMAILS=admin@hascelik.com,ops@hascelik.com`
 - `ADMIN_USER_DOMAINS=hascelik.com`
