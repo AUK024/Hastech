@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import time
 import httpx
 from app.core.config import get_settings
 from app.integrations.microsoft_graph.auth import GraphAuthService
@@ -32,6 +33,60 @@ class GraphClient:
         token = self.auth_service.get_access_token()
         return {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
+    @staticmethod
+    def _is_retryable_status(status_code: int) -> bool:
+        return status_code in {429, 500, 502, 503, 504}
+
+    def _request_with_retries(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: dict | None = None,
+        json: dict | list | None = None,
+        allow_not_found: bool = False,
+    ) -> httpx.Response:
+        timeout = max(1.0, float(self.settings.graph_request_timeout_seconds))
+        max_retries = max(1, int(self.settings.graph_max_retries))
+        backoff_base = max(0.1, float(self.settings.graph_retry_backoff_seconds))
+        headers = self._headers()
+
+        last_error: Exception | None = None
+        for attempt in range(max_retries):
+            try:
+                with httpx.Client(timeout=timeout) as client:
+                    response = client.request(method=method, url=url, headers=headers, params=params, json=json)
+            except httpx.RequestError as exc:
+                last_error = exc
+                if attempt < max_retries - 1:
+                    time.sleep(backoff_base * (2**attempt))
+                    continue
+                raise RuntimeError(f'Graph request network error [{method} {url}]: {exc}') from exc
+
+            if allow_not_found and response.status_code == 404:
+                return response
+
+            if self._is_retryable_status(response.status_code) and attempt < max_retries - 1:
+                time.sleep(backoff_base * (2**attempt))
+                continue
+
+            try:
+                response.raise_for_status()
+                return response
+            except httpx.HTTPStatusError as exc:
+                if self._is_retryable_status(response.status_code) and attempt < max_retries - 1:
+                    last_error = exc
+                    time.sleep(backoff_base * (2**attempt))
+                    continue
+                detail = response.text[:500]
+                raise RuntimeError(
+                    f'Graph request failed [{method} {url}] status={response.status_code} detail={detail}'
+                ) from exc
+
+        if last_error:
+            raise RuntimeError(f'Graph request failed [{method} {url}]: {last_error}') from last_error
+        raise RuntimeError(f'Graph request failed [{method} {url}]')
+
     def get_message(self, mailbox_email: str, message_id: str) -> dict:
         if not self._is_graph_configured():
             return {
@@ -44,10 +99,8 @@ class GraphClient:
                 'body_preview': 'Hello, I need product information.',
             }
         url = f"{self.settings.graph_base_url}/users/{mailbox_email}/messages/{message_id}"
-        with httpx.Client(timeout=30.0) as client:
-            response = client.get(url, headers=self._headers())
-            response.raise_for_status()
-            data = response.json()
+        response = self._request_with_retries('GET', url)
+        data = response.json()
         return {
             'id': data.get('id', message_id),
             'internet_message_id': data.get('internetMessageId'),
@@ -63,9 +116,7 @@ class GraphClient:
             return
         url = f"{self.settings.graph_base_url}/users/{mailbox_email}/messages/{message_id}/reply"
         payload = {'comment': comment}
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(url, headers=self._headers(), json=payload)
-            response.raise_for_status()
+        self._request_with_retries('POST', url, json=payload)
 
     def has_sent_reply_in_conversation(self, mailbox_email: str, conversation_id: str) -> bool:
         if not self._is_graph_configured():
@@ -78,10 +129,8 @@ class GraphClient:
             '$filter': f"conversationId eq '{escaped_conversation_id}'",
         }
         url = f'{self.settings.graph_base_url}/users/{mailbox_email}/mailFolders/SentItems/messages'
-        with httpx.Client(timeout=30.0) as client:
-            response = client.get(url, headers=self._headers(), params=params)
-            response.raise_for_status()
-            data = response.json()
+        response = self._request_with_retries('GET', url, params=params)
+        data = response.json()
 
         return len(data.get('value', [])) > 0
 
@@ -118,10 +167,8 @@ class GraphClient:
             payload['lifecycleNotificationUrl'] = lifecycle_notification_url
 
         url = f'{self.settings.graph_base_url}/subscriptions'
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(url, headers=self._headers(), json=payload)
-            response.raise_for_status()
-            return response.json()
+        response = self._request_with_retries('POST', url, json=payload)
+        return response.json()
 
     def renew_subscription(self, subscription_id: str, expiration_datetime: datetime) -> dict:
         if not self._is_graph_configured():
@@ -132,18 +179,12 @@ class GraphClient:
 
         payload = {'expirationDateTime': self._to_graph_datetime(expiration_datetime)}
         url = f'{self.settings.graph_base_url}/subscriptions/{subscription_id}'
-        with httpx.Client(timeout=30.0) as client:
-            response = client.patch(url, headers=self._headers(), json=payload)
-            response.raise_for_status()
-            return response.json()
+        response = self._request_with_retries('PATCH', url, json=payload)
+        return response.json()
 
     def delete_subscription(self, subscription_id: str) -> None:
         if not self._is_graph_configured():
             return
 
         url = f'{self.settings.graph_base_url}/subscriptions/{subscription_id}'
-        with httpx.Client(timeout=30.0) as client:
-            response = client.delete(url, headers=self._headers())
-            if response.status_code == 404:
-                return
-            response.raise_for_status()
+        self._request_with_retries('DELETE', url, allow_not_found=True)
