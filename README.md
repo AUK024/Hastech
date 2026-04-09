@@ -44,6 +44,8 @@ Not:
 ### Otomatik Yanıt Koruma Kuralları
 - `mail_loop_guard_enabled=true`: Tanımlı/aktif mailbox kaynaklı gönderiler için otomatik cevap üretmez (mail loop engeli).
 - `skip_if_thread_has_sent_reply=true`: Thread içinde Sent Items kaydı varsa (kullanıcı cevabı dahil) otomatik cevap üretmez.
+- `language_detection_provider=mock|azure_translator`: Dil tespiti sağlayıcısını seçer.
+- `translation_provider=mock|azure_translator`: Çeviri sağlayıcısını seçer.
 
 ### Microsoft Graph Webhook Notları
 - Webhook endpoint: `POST /api/v1/webhooks/graph`
@@ -71,6 +73,16 @@ Backend env:
 - `GRAPH_WEBHOOK_LIFECYCLE_URL=https://admin.example.com/api/v1/webhooks/lifecycle`
 - `GRAPH_SUBSCRIPTION_EXPIRY_MINUTES=120`
 - `GRAPH_SUBSCRIPTION_RENEW_THRESHOLD_MINUTES=30`
+- `AZURE_TRANSLATOR_ENDPOINT=https://api.cognitive.microsofttranslator.com`
+- `AZURE_TRANSLATOR_KEY=<azure-translator-key>`
+- `AZURE_TRANSLATOR_REGION=<azure-region>`
+
+### Gerçek Dil/Çeviri Sağlayıcısı Aktivasyonu
+1. `.env` içine Azure Translator bilgilerini girin.
+2. Admin panelde `Settings` ekranından aşağıdaki keyleri güncelleyin:
+- `language_detection_provider=azure_translator`
+- `translation_provider=azure_translator`
+3. Worker servisini yeniden başlatın.
 
 ## Celery
 - Worker: `backend.app.workers.celery_app.celery_app`
