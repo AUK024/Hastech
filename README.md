@@ -67,6 +67,10 @@ Not:
 6. `DELETE /api/v1/graph-subscriptions/mailboxes/{mailbox_id}`
 - Admin panelde `System > Graph Subscriptions` ekranından subscription yönetimi yapılabilir.
 - Mailbox bazında resource otomatik `users/{graph_user_id or email}/messages` formatında oluşturulur.
+- Graph erişimi için timeout/retry envleri:
+1. `GRAPH_REQUEST_TIMEOUT_SECONDS=30`
+2. `GRAPH_MAX_RETRIES=3`
+3. `GRAPH_RETRY_BACKOFF_SECONDS=0.6`
 
 ### Multi-Tenant Foundation
 - Admin API:

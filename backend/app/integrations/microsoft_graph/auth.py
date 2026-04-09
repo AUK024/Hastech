@@ -15,4 +15,14 @@ class GraphAuthService:
 
     def get_access_token(self) -> str:
         token_result = self.client.acquire_token_for_client(scopes=self.scope)
-        return token_result.get('access_token', '')
+        access_token = token_result.get('access_token')
+        if access_token:
+            return access_token
+
+        error = token_result.get('error') or 'unknown_error'
+        description = token_result.get('error_description') or 'Failed to acquire access token for Microsoft Graph.'
+        correlation_id = token_result.get('correlation_id') or ''
+        raise RuntimeError(
+            f'Graph token acquisition failed: {error} ({description})'
+            + (f' [correlation_id={correlation_id}]' if correlation_id else '')
+        )

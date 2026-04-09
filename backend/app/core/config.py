@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     graph_webhook_lifecycle_url: str = ''
     graph_subscription_expiry_minutes: int = 120
     graph_subscription_renew_threshold_minutes: int = 30
+    graph_request_timeout_seconds: float = 30.0
+    graph_max_retries: int = 3
+    graph_retry_backoff_seconds: float = 0.6
     azure_translator_endpoint: str = 'https://api.cognitive.microsofttranslator.com'
     azure_translator_key: str = ''
     azure_translator_region: str = ''
