@@ -56,12 +56,20 @@ export function DashboardPage() {
             }}
           >
             <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Gelen Mail Sayısı</h3>
-              <strong style={{ fontSize: 28 }}>{data.incoming_mail_count ?? data.daily_incoming ?? 0}</strong>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Günlük Gelen Mail</h3>
+              <strong style={{ fontSize: 28 }}>{data.daily_incoming ?? 0}</strong>
             </article>
             <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Dönüş Yapılan Mail Sayısı</h3>
-              <strong style={{ fontSize: 28 }}>{data.replied_mail_count ?? data.daily_auto_reply_sent ?? 0}</strong>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Günlük Cevaplanan Mail</h3>
+              <strong style={{ fontSize: 28 }}>{data.daily_auto_reply_sent ?? 0}</strong>
+            </article>
+            <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Toplam Gelen Mail</h3>
+              <strong style={{ fontSize: 28 }}>{data.incoming_mail_count ?? 0}</strong>
+            </article>
+            <article style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 6 }}>Toplam Cevaplanan Mail</h3>
+              <strong style={{ fontSize: 28 }}>{data.replied_mail_count ?? 0}</strong>
             </article>
           </div>
 
@@ -69,6 +77,56 @@ export function DashboardPage() {
             <li>External mail count: {data.daily_external}</li>
             <li>Error count: {data.daily_errors}</li>
           </ul>
+
+          <h3>Son 14 Gün Trendi</h3>
+          <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 12 }}>
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Gelen</th>
+                <th>Cevaplanan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.daily_trend || []).map((row) => (
+                <tr key={row.date}>
+                  <td>{row.date}</td>
+                  <td>{row.incoming_count}</td>
+                  <td>{row.replied_count}</td>
+                </tr>
+              ))}
+              {(data.daily_trend || []).length === 0 ? (
+                <tr>
+                  <td colSpan="3">Veri yok</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+
+          <h3>Günlük Dil Performansı</h3>
+          <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Dil</th>
+                <th>Gelen</th>
+                <th>Cevaplanan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.language_performance || []).map((row) => (
+                <tr key={row.lang}>
+                  <td>{row.lang}</td>
+                  <td>{row.incoming_count}</td>
+                  <td>{row.replied_count}</td>
+                </tr>
+              ))}
+              {(data.language_performance || []).length === 0 ? (
+                <tr>
+                  <td colSpan="3">Veri yok</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </>
       )}
       {!loading && !error && !data ? <p>Dashboard verisi bulunamadı.</p> : null}

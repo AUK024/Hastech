@@ -11,6 +11,7 @@ Kurumsal e-posta otomasyonu için FastAPI + Celery + PostgreSQL + React tabanlı
 - Audit, webhook, gelen mail ve auto-reply logları
 - Tüm API eylemlerinin merkezi audit log kaydı (istek method/path/status/duration)
 - Tenant (firma) temel yönetimi: çoklu müşteri mimarisi için tenant kayıt/CRUD
+- Dashboard üzerinde günlük gelen/cevaplanan mail metrikleri + 14 günlük trend + dil performansı
 
 ## Kurulum
 ```bash
