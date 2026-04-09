@@ -30,6 +30,8 @@ class SettingsService:
             ('only_first_mail_reply', 'true', 'Sadece ilk maile otomatik cevap ver'),
             ('mail_loop_guard_enabled', 'true', 'Tanımlı mailbox kaynaklı mail loop engeli'),
             ('skip_if_thread_has_sent_reply', 'true', 'Thread içinde sent item varsa otomatik cevap verme'),
+            ('non_turkish_only', 'true', 'Sadece Türkçe olmayan maillere otomatik cevap ver'),
+            ('turkish_language_codes', 'tr,tr-tr', 'Türkçe dil kodları (csv)'),
             ('language_detection_provider', 'mock', 'Dil tespiti sağlayıcısı: mock | azure_translator'),
             ('translation_provider', 'mock', 'Çeviri sağlayıcısı: mock | azure_translator'),
         ]

@@ -58,8 +58,8 @@ class GraphSubscriptionService:
         principal = (mailbox.graph_user_id or mailbox.email).strip()
         return f'users/{principal}/messages'
 
-    def _require_active_mailbox(self, mailbox_id: int) -> MonitoredMailbox:
-        mailbox = self.mailbox_repo.get(mailbox_id)
+    def _require_active_mailbox(self, mailbox_id: int, tenant_code: str = 'default') -> MonitoredMailbox:
+        mailbox = self.mailbox_repo.get(mailbox_id, tenant_code=tenant_code)
         if not mailbox:
             raise LookupError('Mailbox not found')
         if not mailbox.is_active:
@@ -77,7 +77,7 @@ class GraphSubscriptionService:
         lifecycle_notification_url: str | None,
         client_state: str | None,
     ) -> GraphSubscription:
-        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id)
+        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id, tenant_code=mailbox.tenant_code)
         graph_subscription_id = str(graph_payload.get('id', '')).strip() or (existing.graph_subscription_id if existing else None)
         resolved_resource = str(graph_payload.get('resource', '')).strip() or resource
         resolved_change_type = str(graph_payload.get('changeType', '')).strip() or 'created'
@@ -103,6 +103,7 @@ class GraphSubscriptionService:
 
         return self.subscription_repo.create(
             GraphSubscriptionCreate(
+                tenant_code=mailbox.tenant_code,
                 mailbox_id=mailbox.id,
                 graph_subscription_id=graph_subscription_id,
                 resource=resolved_resource,
@@ -117,8 +118,8 @@ class GraphSubscriptionService:
             )
         )
 
-    def _save_error(self, mailbox_id: int, message: str) -> None:
-        existing = self.subscription_repo.get_by_mailbox_id(mailbox_id)
+    def _save_error(self, mailbox_id: int, message: str, tenant_code: str = 'default') -> None:
+        existing = self.subscription_repo.get_by_mailbox_id(mailbox_id, tenant_code=tenant_code)
         if existing:
             self.subscription_repo.update(
                 existing,
@@ -129,9 +130,14 @@ class GraphSubscriptionService:
                 ),
             )
 
-    def subscribe_mailbox(self, mailbox_id: int, force_recreate: bool = False) -> GraphSubscription:
-        mailbox = self._require_active_mailbox(mailbox_id)
-        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id)
+    def subscribe_mailbox(
+        self,
+        mailbox_id: int,
+        force_recreate: bool = False,
+        tenant_code: str = 'default',
+    ) -> GraphSubscription:
+        mailbox = self._require_active_mailbox(mailbox_id, tenant_code=tenant_code)
+        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id, tenant_code=mailbox.tenant_code)
 
         requested_expiration = self._requested_expiration()
         notification_url = self._notification_url()
@@ -151,7 +157,7 @@ class GraphSubscriptionService:
                         error_message=None,
                     ),
                 )
-                existing = self.subscription_repo.get_by_mailbox_id(mailbox.id)
+                existing = self.subscription_repo.get_by_mailbox_id(mailbox.id, tenant_code=mailbox.tenant_code)
 
             if existing and existing.graph_subscription_id and existing.is_active and not force_recreate:
                 graph_payload = self.graph_client.renew_subscription(
@@ -182,12 +188,12 @@ class GraphSubscriptionService:
                 client_state=client_state,
             )
         except Exception as exc:
-            self._save_error(mailbox_id, str(exc))
+            self._save_error(mailbox_id, str(exc), tenant_code=mailbox.tenant_code)
             raise
 
-    def renew_mailbox(self, mailbox_id: int) -> GraphSubscription:
-        mailbox = self._require_active_mailbox(mailbox_id)
-        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id)
+    def renew_mailbox(self, mailbox_id: int, tenant_code: str = 'default') -> GraphSubscription:
+        mailbox = self._require_active_mailbox(mailbox_id, tenant_code=tenant_code)
+        existing = self.subscription_repo.get_by_mailbox_id(mailbox.id, tenant_code=mailbox.tenant_code)
         if not existing or not existing.graph_subscription_id:
             raise LookupError('Active subscription not found for mailbox')
 
@@ -211,11 +217,11 @@ class GraphSubscriptionService:
                 client_state=existing.client_state,
             )
         except Exception as exc:
-            self._save_error(mailbox_id, str(exc))
+            self._save_error(mailbox_id, str(exc), tenant_code=mailbox.tenant_code)
             raise
 
-    def unsubscribe_mailbox(self, mailbox_id: int) -> GraphSubscription:
-        existing = self.subscription_repo.get_by_mailbox_id(mailbox_id)
+    def unsubscribe_mailbox(self, mailbox_id: int, tenant_code: str = 'default') -> GraphSubscription:
+        existing = self.subscription_repo.get_by_mailbox_id(mailbox_id, tenant_code=tenant_code)
         if not existing:
             raise LookupError('Subscription not found for mailbox')
 
@@ -233,13 +239,17 @@ class GraphSubscriptionService:
             ),
         )
 
-    def sync_active_mailboxes(self, force_recreate: bool = False) -> dict:
-        active_mailboxes = self.mailbox_repo.list_active()
+    def sync_active_mailboxes(self, force_recreate: bool = False, tenant_code: str = 'default') -> dict:
+        active_mailboxes = self.mailbox_repo.list_active(tenant_code=tenant_code)
         results: list[dict] = []
 
         for mailbox in active_mailboxes:
             try:
-                subscription = self.subscribe_mailbox(mailbox.id, force_recreate=force_recreate)
+                subscription = self.subscribe_mailbox(
+                    mailbox.id,
+                    force_recreate=force_recreate,
+                    tenant_code=tenant_code,
+                )
                 results.append(
                     {
                         'mailbox_id': mailbox.id,
@@ -270,18 +280,18 @@ class GraphSubscriptionService:
             'results': results,
         }
 
-    def renew_due(self, within_minutes: int | None = None) -> dict:
+    def renew_due(self, within_minutes: int | None = None, tenant_code: str = 'default') -> dict:
         threshold_minutes = self._renew_threshold_minutes(within_minutes)
         renew_before = self._utcnow() + timedelta(minutes=threshold_minutes)
-        due_items = self.subscription_repo.list_due_for_renewal(renew_before)
-        mailbox_lookup = {mailbox.id: mailbox for mailbox in self.mailbox_repo.list()}
+        due_items = self.subscription_repo.list_due_for_renewal(renew_before, tenant_code=tenant_code)
+        mailbox_lookup = {mailbox.id: mailbox for mailbox in self.mailbox_repo.list(tenant_code=tenant_code)}
 
         results: list[dict] = []
         for item in due_items:
             mailbox = mailbox_lookup.get(item.mailbox_id)
             mailbox_email = mailbox.email if mailbox else f'mailbox:{item.mailbox_id}'
             try:
-                renewed = self.renew_mailbox(item.mailbox_id)
+                renewed = self.renew_mailbox(item.mailbox_id, tenant_code=tenant_code)
                 results.append(
                     {
                         'mailbox_id': item.mailbox_id,

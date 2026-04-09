@@ -7,6 +7,7 @@ from app.models.common import TimestampMixin
 class MonitoredMailbox(Base, TimestampMixin):
     __tablename__ = 'monitored_mailboxes'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     graph_user_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     display_name: Mapped[str] = mapped_column(String(255))

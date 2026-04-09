@@ -7,6 +7,7 @@ from app.db.base import Base
 class AuditLog(Base):
     __tablename__ = 'audit_logs'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     module_name: Mapped[str] = mapped_column(String(120))
     action_name: Mapped[str] = mapped_column(String(120))
     payload: Mapped[dict] = mapped_column(JSON)

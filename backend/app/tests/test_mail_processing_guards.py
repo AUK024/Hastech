@@ -31,7 +31,10 @@ class FakeIncomingRepo:
     def create(self, **kwargs):
         return SimpleNamespace(id=101)
 
-    def get_by_conversation(self, conversation_id: str):
+    def update(self, obj, **kwargs):
+        return obj
+
+    def get_by_conversation(self, conversation_id: str, tenant_code: str = 'default'):
         return self.conversation_rows
 
 
@@ -44,8 +47,12 @@ class FakeReplyRepo:
 
 
 class FakeLangProvider:
+    def __init__(self, language: str = 'en', confidence: float = 0.99):
+        self.language = language
+        self.confidence = confidence
+
     def detect_language(self, text: str) -> dict:
-        return {'language': 'en', 'confidence': 0.99}
+        return {'language': self.language, 'confidence': self.confidence}
 
 
 class FakeTranslationProvider:
@@ -78,46 +85,60 @@ class FakeGraphClient:
 
 
 class FakeMailboxRepo:
-    def __init__(self, mailbox_email: str, auto_reply_enabled: bool = True):
+    def __init__(self, mailbox_email: str, auto_reply_enabled: bool = True, tenant_code: str = 'default'):
         self.mailbox = SimpleNamespace(
             id=1,
+            tenant_code=tenant_code,
             email=mailbox_email,
             is_active=True,
             auto_reply_enabled=auto_reply_enabled,
         )
         self.managed_mailboxes = [self.mailbox]
 
-    def get(self, mailbox_id: int):
+    def get(self, mailbox_id: int, tenant_code: str = 'default'):
+        if tenant_code != self.mailbox.tenant_code:
+            return None
         return self.mailbox if mailbox_id == self.mailbox.id else None
 
-    def list(self):
+    def list(self, tenant_code: str = 'default'):
+        if tenant_code != self.mailbox.tenant_code:
+            return []
         return self.managed_mailboxes
 
 
-def build_service(graph_client: FakeGraphClient) -> MailProcessingService:
+def build_service(
+    graph_client: FakeGraphClient,
+    *,
+    detected_language: str = 'en',
+    confidence: float = 0.99,
+    settings_overrides: dict[str, str] | None = None,
+) -> MailProcessingService:
     service = MailProcessingService(
         db=None,
         graph_client=graph_client,
-        lang_provider=FakeLangProvider(),
+        lang_provider=FakeLangProvider(language=detected_language, confidence=confidence),
         translation_provider=FakeTranslationProvider(),
     )
-    service.settings = FakeSettings(
-        {
-            'internal_domain': 'hascelik.com',
-            'fallback_language': 'en',
-            'confidence_threshold': '0.70',
-            'mail_loop_guard_enabled': 'true',
-            'skip_if_thread_has_sent_reply': 'true',
-            'prevent_duplicate_thread_reply': 'true',
-            'only_first_mail_reply': 'false',
-            'translation_enabled': 'true',
-        }
-    )
+    values = {
+        'internal_domain': 'hascelik.com',
+        'fallback_language': 'en',
+        'confidence_threshold': '0.70',
+        'mail_loop_guard_enabled': 'true',
+        'skip_if_thread_has_sent_reply': 'true',
+        'prevent_duplicate_thread_reply': 'true',
+        'only_first_mail_reply': 'false',
+        'translation_enabled': 'true',
+        'non_turkish_only': 'true',
+        'turkish_language_codes': 'tr,tr-tr',
+    }
+    if settings_overrides:
+        values.update(settings_overrides)
+    service.settings = FakeSettings(values)
     service.incoming_repo = FakeIncomingRepo([SimpleNamespace(id=101)])
     service.reply_repo = FakeReplyRepo()
-    service.blocked_repo = SimpleNamespace(list=lambda: [])
+    service.blocked_repo = SimpleNamespace(list=lambda tenant_code='default': [])
     service.mailbox_repo = FakeMailboxRepo(mailbox_email='sales@hascelik.com')
-    service.template_repo = SimpleNamespace(list=lambda: [])
+    service.template_repo = SimpleNamespace(list=lambda tenant_code='default': [])
     return service
 
 
@@ -154,3 +175,34 @@ def test_mailbox_auto_reply_disabled_skips_auto_reply() -> None:
     assert result['status'] == 'skipped'
     assert result['reason'] == 'mailbox_auto_reply_disabled'
     assert graph_client.send_reply_called is False
+
+
+def test_non_turkish_policy_skips_turkish_mail() -> None:
+    graph_client = FakeGraphClient(sender_email='external@example.com', sent_reply_exists=False)
+    service = build_service(graph_client, detected_language='tr')
+    service.template_repo = SimpleNamespace(
+        list=lambda tenant_code='default': [SimpleNamespace(id=1, is_active=True, source_language='en', subject_template='S', body_template='B', signature_template='')]
+    )
+
+    result = service.process_graph_event(mailbox_id=1, mailbox_email='sales@hascelik.com', message_id='m-4')
+
+    assert result['status'] == 'skipped'
+    assert result['reason'] == 'turkish_language_filtered'
+    assert graph_client.send_reply_called is False
+
+
+def test_non_turkish_policy_can_be_disabled() -> None:
+    graph_client = FakeGraphClient(sender_email='external@example.com', sent_reply_exists=False)
+    service = build_service(
+        graph_client,
+        detected_language='tr',
+        settings_overrides={'non_turkish_only': 'false'},
+    )
+    service.template_repo = SimpleNamespace(
+        list=lambda tenant_code='default': [SimpleNamespace(id=1, is_active=True, source_language='en', subject_template='S', body_template='B', signature_template='')]
+    )
+
+    result = service.process_graph_event(mailbox_id=1, mailbox_email='sales@hascelik.com', message_id='m-5')
+
+    assert result['status'] == 'replied'
+    assert graph_client.send_reply_called is True

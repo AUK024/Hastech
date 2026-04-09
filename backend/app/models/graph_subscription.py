@@ -9,6 +9,7 @@ class GraphSubscription(Base, TimestampMixin):
     __tablename__ = 'graph_subscriptions'
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     mailbox_id: Mapped[int] = mapped_column(ForeignKey('monitored_mailboxes.id'), unique=True, index=True)
     graph_subscription_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     resource: Mapped[str] = mapped_column(String(500))

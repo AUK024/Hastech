@@ -7,6 +7,7 @@ from app.db.base import Base
 class IncomingEmail(Base):
     __tablename__ = 'incoming_emails'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     mailbox_id: Mapped[int] = mapped_column(ForeignKey('monitored_mailboxes.id'))
     message_id: Mapped[str] = mapped_column(String(255), unique=True)
     internet_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)

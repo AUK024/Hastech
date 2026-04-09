@@ -9,19 +9,28 @@ from app.schemas.graph_subscription import GraphSubscriptionCreate, GraphSubscri
 
 
 class GraphSubscriptionRepository(RepositoryBase):
-    def list(self) -> list[GraphSubscription]:
-        return self.db.scalars(select(GraphSubscription).order_by(GraphSubscription.id.desc())).all()
-
-    def list_active(self) -> list[GraphSubscription]:
+    def list(self, tenant_code: str = 'default') -> list[GraphSubscription]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
         return self.db.scalars(
             select(GraphSubscription)
+            .where(GraphSubscription.tenant_code == normalized_tenant)
+            .order_by(GraphSubscription.id.desc())
+        ).all()
+
+    def list_active(self, tenant_code: str = 'default') -> list[GraphSubscription]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalars(
+            select(GraphSubscription)
+            .where(GraphSubscription.tenant_code == normalized_tenant)
             .where(GraphSubscription.is_active.is_(True))
             .order_by(GraphSubscription.id.desc())
         ).all()
 
-    def list_due_for_renewal(self, renew_before: datetime) -> list[GraphSubscription]:
+    def list_due_for_renewal(self, renew_before: datetime, tenant_code: str = 'default') -> list[GraphSubscription]:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
         return self.db.scalars(
             select(GraphSubscription)
+            .where(GraphSubscription.tenant_code == normalized_tenant)
             .where(GraphSubscription.is_active.is_(True))
             .where(GraphSubscription.graph_subscription_id.is_not(None))
             .where(GraphSubscription.expiration_datetime.is_not(None))
@@ -29,14 +38,28 @@ class GraphSubscriptionRepository(RepositoryBase):
             .order_by(GraphSubscription.expiration_datetime.asc())
         ).all()
 
-    def get(self, subscription_id: int) -> GraphSubscription | None:
-        return self.db.scalar(select(GraphSubscription).where(GraphSubscription.id == subscription_id))
+    def get(self, subscription_id: int, tenant_code: str = 'default') -> GraphSubscription | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(GraphSubscription).where(
+                GraphSubscription.id == subscription_id,
+                GraphSubscription.tenant_code == normalized_tenant,
+            )
+        )
 
-    def get_by_mailbox_id(self, mailbox_id: int) -> GraphSubscription | None:
-        return self.db.scalar(select(GraphSubscription).where(GraphSubscription.mailbox_id == mailbox_id))
+    def get_by_mailbox_id(self, mailbox_id: int, tenant_code: str = 'default') -> GraphSubscription | None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        return self.db.scalar(
+            select(GraphSubscription).where(
+                GraphSubscription.mailbox_id == mailbox_id,
+                GraphSubscription.tenant_code == normalized_tenant,
+            )
+        )
 
     def create(self, data: GraphSubscriptionCreate) -> GraphSubscription:
-        obj = GraphSubscription(**data.model_dump())
+        payload = data.model_dump()
+        payload['tenant_code'] = str(payload.get('tenant_code', 'default')).strip().lower() or 'default'
+        obj = GraphSubscription(**payload)
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)
@@ -50,6 +73,12 @@ class GraphSubscriptionRepository(RepositoryBase):
         self.db.refresh(obj)
         return obj
 
-    def delete_by_mailbox_id(self, mailbox_id: int) -> None:
-        self.db.execute(delete(GraphSubscription).where(GraphSubscription.mailbox_id == mailbox_id))
+    def delete_by_mailbox_id(self, mailbox_id: int, tenant_code: str = 'default') -> None:
+        normalized_tenant = tenant_code.strip().lower() or 'default'
+        self.db.execute(
+            delete(GraphSubscription).where(
+                GraphSubscription.mailbox_id == mailbox_id,
+                GraphSubscription.tenant_code == normalized_tenant,
+            )
+        )
         self.db.commit()

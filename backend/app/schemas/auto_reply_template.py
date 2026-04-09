@@ -27,3 +27,4 @@ class AutoReplyTemplateRead(AutoReplyTemplateBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    tenant_code: str

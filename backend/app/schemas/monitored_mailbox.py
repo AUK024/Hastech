@@ -28,3 +28,4 @@ class MonitoredMailboxRead(MonitoredMailboxBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    tenant_code: str

@@ -7,6 +7,7 @@ from app.models.common import TimestampMixin
 class BlockedSenderRule(Base, TimestampMixin):
     __tablename__ = 'blocked_sender_rules'
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_code: Mapped[str] = mapped_column(String(120), default='default', index=True)
     rule_type: Mapped[str] = mapped_column(String(50))
     rule_value: Mapped[str] = mapped_column(String(255), index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

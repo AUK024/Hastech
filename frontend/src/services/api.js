@@ -19,6 +19,8 @@ const defaultApiBaseUrl = () => {
   return `${origin}/api/v1`
 }
 
+const configuredTenantCode = (import.meta.env.VITE_TENANT_CODE || '').trim().toLowerCase() || 'default'
+
 export const api = axios.create({
   baseURL: defaultApiBaseUrl(),
 })
@@ -42,6 +44,9 @@ api.interceptors.request.use((config) => {
   } catch {
     // Ignore session parsing issues and continue request without admin header.
   }
+
+  config.headers = config.headers || {}
+  config.headers['X-Tenant-Code'] = configuredTenantCode
 
   return config
 })
