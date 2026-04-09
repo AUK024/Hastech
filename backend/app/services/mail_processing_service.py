@@ -43,15 +43,20 @@ class MailProcessingService:
         return None
 
     def process_graph_event(self, mailbox_id: int, mailbox_email: str, message_id: str) -> dict:
+        mailbox = self.mailbox_repo.get(mailbox_id)
+        if not mailbox or not mailbox.is_active:
+            return {'status': 'skipped', 'reason': 'mailbox_inactive_or_missing', 'message_id': message_id}
+
         existing = self.incoming_repo.get_by_message_id(message_id)
         if existing:
             return {'status': 'duplicate_message', 'message_id': message_id, 'incoming_email_id': existing.id}
 
-        message = self.graph_client.get_message(mailbox_email=mailbox_email, message_id=message_id)
+        resolved_mailbox_email = mailbox.email
+        message = self.graph_client.get_message(mailbox_email=resolved_mailbox_email, message_id=message_id)
         sender_email = message.get('sender_email', '').lower()
         conversation_id = message.get('conversation_id', message_id)
         body_preview = message.get('body_preview', '')
-        normalized_mailbox_email = mailbox_email.lower()
+        normalized_mailbox_email = resolved_mailbox_email.lower()
         managed_mailbox_emails = {
             mailbox.email.lower()
             for mailbox in self.mailbox_repo.list()
@@ -102,6 +107,13 @@ class MailProcessingService:
                 'incoming_email_id': incoming.id,
             }
 
+        if not mailbox.auto_reply_enabled:
+            return {
+                'status': 'skipped',
+                'reason': 'mailbox_auto_reply_disabled',
+                'incoming_email_id': incoming.id,
+            }
+
         if is_internal or is_blocked:
             return {
                 'status': 'skipped',
@@ -116,7 +128,7 @@ class MailProcessingService:
         conversation_ids = [row.id for row in conversation_emails]
 
         if skip_if_thread_has_sent_reply and self.graph_client.has_sent_reply_in_conversation(
-            mailbox_email=mailbox_email,
+            mailbox_email=resolved_mailbox_email,
             conversation_id=conversation_id,
         ):
             return {'status': 'skipped', 'reason': 'thread_has_sent_reply', 'incoming_email_id': incoming.id}
@@ -147,7 +159,7 @@ class MailProcessingService:
                 target_language=detected_lang,
             )
 
-        self.graph_client.send_reply(mailbox_email=mailbox_email, message_id=message_id, comment=body)
+        self.graph_client.send_reply(mailbox_email=resolved_mailbox_email, message_id=message_id, comment=body)
         log = self.reply_repo.create(
             incoming_email_id=incoming.id,
             template_id=template.id,

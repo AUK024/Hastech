@@ -77,6 +77,23 @@ class FakeGraphClient:
         self.send_reply_called = True
 
 
+class FakeMailboxRepo:
+    def __init__(self, mailbox_email: str, auto_reply_enabled: bool = True):
+        self.mailbox = SimpleNamespace(
+            id=1,
+            email=mailbox_email,
+            is_active=True,
+            auto_reply_enabled=auto_reply_enabled,
+        )
+        self.managed_mailboxes = [self.mailbox]
+
+    def get(self, mailbox_id: int):
+        return self.mailbox if mailbox_id == self.mailbox.id else None
+
+    def list(self):
+        return self.managed_mailboxes
+
+
 def build_service(graph_client: FakeGraphClient) -> MailProcessingService:
     service = MailProcessingService(
         db=None,
@@ -99,7 +116,7 @@ def build_service(graph_client: FakeGraphClient) -> MailProcessingService:
     service.incoming_repo = FakeIncomingRepo([SimpleNamespace(id=101)])
     service.reply_repo = FakeReplyRepo()
     service.blocked_repo = SimpleNamespace(list=lambda: [])
-    service.mailbox_repo = SimpleNamespace(list=lambda: [])
+    service.mailbox_repo = FakeMailboxRepo(mailbox_email='sales@hascelik.com')
     service.template_repo = SimpleNamespace(list=lambda: [])
     return service
 
@@ -107,7 +124,7 @@ def build_service(graph_client: FakeGraphClient) -> MailProcessingService:
 def test_mail_loop_guard_skips_when_sender_is_managed_mailbox() -> None:
     graph_client = FakeGraphClient(sender_email='sales@hascelik.com', sent_reply_exists=False)
     service = build_service(graph_client)
-    service.mailbox_repo = SimpleNamespace(list=lambda: [SimpleNamespace(email='sales@hascelik.com', is_active=True)])
+    service.mailbox_repo = FakeMailboxRepo(mailbox_email='sales@hascelik.com')
 
     result = service.process_graph_event(mailbox_id=1, mailbox_email='sales@hascelik.com', message_id='m-1')
 
@@ -124,4 +141,16 @@ def test_thread_has_sent_reply_guard_skips_auto_reply() -> None:
 
     assert result['status'] == 'skipped'
     assert result['reason'] == 'thread_has_sent_reply'
+    assert graph_client.send_reply_called is False
+
+
+def test_mailbox_auto_reply_disabled_skips_auto_reply() -> None:
+    graph_client = FakeGraphClient(sender_email='external@example.com', sent_reply_exists=False)
+    service = build_service(graph_client)
+    service.mailbox_repo = FakeMailboxRepo(mailbox_email='sales@hascelik.com', auto_reply_enabled=False)
+
+    result = service.process_graph_event(mailbox_id=1, mailbox_email='sales@hascelik.com', message_id='m-3')
+
+    assert result['status'] == 'skipped'
+    assert result['reason'] == 'mailbox_auto_reply_disabled'
     assert graph_client.send_reply_called is False

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     graph_client_secret: str = ''
     graph_scope: str = 'https://graph.microsoft.com/.default'
     graph_base_url: str = 'https://graph.microsoft.com/v1.0'
+    graph_webhook_client_state: str = ''
 
     admin_user_emails: str = 'admin@hascelik.com'
     admin_user_domains: str = ''
