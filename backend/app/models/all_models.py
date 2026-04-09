@@ -8,6 +8,7 @@ from app.models.webhook_log import WebhookLog
 from app.models.audit_log import AuditLog
 from app.models.employee_user import EmployeeUser
 from app.models.graph_subscription import GraphSubscription
+from app.models.tenant import Tenant
 
 __all__ = [
     'MonitoredMailbox',
@@ -20,4 +21,5 @@ __all__ = [
     'AuditLog',
     'EmployeeUser',
     'GraphSubscription',
+    'Tenant',
 ]

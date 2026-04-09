@@ -15,6 +15,7 @@ import { ReportsPage } from './ReportsPage'
 import { ReportDetailPage } from './ReportDetailPage'
 import { EmployeeUsersPage } from './EmployeeUsersPage'
 import { GraphSubscriptionsPage } from './GraphSubscriptionsPage'
+import { TenantsPage } from './TenantsPage'
 
 export const routes = [
   { path: '/login', label: 'Login', component: LoginPage, public: true, sidebar: false, category: 'Auth' },
@@ -33,5 +34,6 @@ export const routes = [
   { path: '/reports', label: 'Reports', component: ReportsPage, category: 'Reports' },
   { path: '/reports/:id', label: 'Report Detail', component: ReportDetailPage, category: 'Reports', sidebar: false },
   { path: '/graph-subscriptions', label: 'Graph Subscriptions', component: GraphSubscriptionsPage, category: 'System', adminOnly: true },
+  { path: '/tenants', label: 'Tenants', component: TenantsPage, category: 'System', adminOnly: true },
   { path: '/settings', label: 'Settings', component: SettingsPage, category: 'System' },
 ]

@@ -20,6 +20,7 @@ from app.schemas.graph_subscription import (
     GraphSubscriptionActionResult,
     GraphSubscriptionBatchResponse,
 )
+from app.schemas.tenant import TenantCreate, TenantUpdate, TenantRead
 
 __all__ = [
     'AppSettingRead',
@@ -47,4 +48,7 @@ __all__ = [
     'GraphSubscriptionRead',
     'GraphSubscriptionActionResult',
     'GraphSubscriptionBatchResponse',
+    'TenantCreate',
+    'TenantUpdate',
+    'TenantRead',
 ]
