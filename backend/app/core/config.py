@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     azure_translator_endpoint: str = 'https://api.cognitive.microsofttranslator.com'
     azure_translator_key: str = ''
     azure_translator_region: str = ''
+    openai_base_url: str = 'https://api.openai.com/v1'
+    openai_api_key: str = ''
+    openai_detection_model: str = 'gpt-4.1-mini'
+    openai_translation_model: str = 'gpt-4.1-mini'
+    openai_timeout_seconds: float = 30.0
 
     admin_user_emails: str = 'admin@hascelik.com'
     admin_user_domains: str = ''
