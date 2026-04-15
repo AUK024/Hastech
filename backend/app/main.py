@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import logging
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -41,6 +42,13 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origin_list or ['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 register_middlewares(app)
 app.include_router(api_router, prefix=settings.api_prefix)
 

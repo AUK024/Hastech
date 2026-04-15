@@ -100,6 +100,7 @@ Backend env:
 - `AZURE_TRANSLATOR_KEY=<azure-translator-key>`
 - `AZURE_TRANSLATOR_REGION=<azure-region>`
 - `DEFAULT_TENANT_CODE=default`
+- `CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
 
 ### Gerçek Dil/Çeviri Sağlayıcısı Aktivasyonu
 1. `.env` içine Azure Translator bilgilerini girin.

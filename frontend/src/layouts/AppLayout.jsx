@@ -1,9 +1,19 @@
+import { useEffect, useState } from 'react'
 import { useUI } from '../contexts/UIContext'
+import { useCustomUx } from '../contexts/CustomUxContext'
 import { APP_NAME } from '../utils/constants'
 
 export function AppLayout({ children, sidebar, user, onLogout }) {
   const { theme, setTheme, lang, setLang, t } = useUI()
+  const { headerTitle, headerLogoUrl } = useCustomUx()
   const isDark = theme === 'dark'
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false)
+  const resolvedHeaderTitle = (headerTitle || '').trim() || `${APP_NAME} Admin`
+  const showLogoImage = Boolean(headerLogoUrl) && !logoLoadFailed
+
+  useEffect(() => {
+    setLogoLoadFailed(false)
+  }, [headerLogoUrl])
 
   return (
     <div style={{
@@ -15,7 +25,37 @@ export function AppLayout({ children, sidebar, user, onLogout }) {
       transition: 'all .2s ease',
     }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>{APP_NAME} Admin</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
+              background: isDark ? '#111827' : '#ffffff',
+              display: 'grid',
+              placeItems: 'center',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
+            {showLogoImage ? (
+              <img
+                src={headerLogoUrl}
+                alt="Header Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                onError={(e) => {
+                  setLogoLoadFailed(true)
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: 10, opacity: 0.75 }}>Logo</span>
+            )}
+          </div>
+          <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.1, wordBreak: 'break-word' }}>
+            {resolvedHeaderTitle}
+          </h1>
+        </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <label>{t('language')}:</label>
           <select value={lang} onChange={(e) => setLang(e.target.value)}>

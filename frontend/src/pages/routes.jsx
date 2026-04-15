@@ -7,6 +7,7 @@ import { TemplateEditPage } from './TemplateEditPage'
 import { BlockedRulesListPage } from './BlockedRulesListPage'
 import { BlockedRuleEditPage } from './BlockedRuleEditPage'
 import { SettingsPage } from './SettingsPage'
+import { CustomUxPage } from './CustomUxPage'
 import { IncomingMailLogsPage } from './IncomingMailLogsPage'
 import { AutoReplyLogsPage } from './AutoReplyLogsPage'
 import { WebhookLogsPage } from './WebhookLogsPage'
@@ -36,4 +37,5 @@ export const routes = [
   { path: '/graph-subscriptions', label: 'Graph Subscriptions', component: GraphSubscriptionsPage, category: 'System', adminOnly: true },
   { path: '/tenants', label: 'Tenants', component: TenantsPage, category: 'System', adminOnly: true },
   { path: '/settings', label: 'Settings', component: SettingsPage, category: 'System' },
+  { path: '/settings/custom-ux', label: 'Custom UX', component: CustomUxPage, category: 'System', adminOnly: true },
 ]

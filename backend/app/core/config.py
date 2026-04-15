@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     default_fallback_language: str = 'en'
     default_confidence_threshold: float = 0.70
     default_tenant_code: str = 'default'
+    cors_allow_origins: str = 'http://localhost:5173,http://127.0.0.1:5173'
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
@@ -59,6 +60,10 @@ class Settings(BaseSettings):
     @property
     def admin_domain_set(self) -> set[str]:
         return self._parse_csv(self.admin_user_domains)
+
+    @property
+    def cors_allow_origin_list(self) -> list[str]:
+        return [item.strip() for item in self.cors_allow_origins.split(',') if item.strip()]
 
     def is_admin_email(self, email: str) -> bool:
         normalized = email.strip().lower()
