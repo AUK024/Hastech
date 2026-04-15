@@ -52,8 +52,8 @@ Not:
 - `skip_if_thread_has_sent_reply=true`: Thread içinde Sent Items kaydı varsa (kullanıcı cevabı dahil) otomatik cevap üretmez.
 - `non_turkish_only=true`: Türkçe tespit edilen maillere otomatik cevap üretmez.
 - `turkish_language_codes=tr,tr-tr`: Türkçe için kabul edilen dil kodları.
-- `language_detection_provider=mock|azure_translator`: Dil tespiti sağlayıcısını seçer.
-- `translation_provider=mock|azure_translator`: Çeviri sağlayıcısını seçer.
+- `language_detection_provider=mock|azure_translator|openai`: Dil tespiti sağlayıcısını seçer.
+- `translation_provider=mock|azure_translator|openai`: Çeviri sağlayıcısını seçer.
 
 ### Microsoft Graph Webhook Notları
 - Webhook endpoint: `POST /api/v1/webhooks/graph`
@@ -99,13 +99,19 @@ Backend env:
 - `AZURE_TRANSLATOR_ENDPOINT=https://api.cognitive.microsofttranslator.com`
 - `AZURE_TRANSLATOR_KEY=<azure-translator-key>`
 - `AZURE_TRANSLATOR_REGION=<azure-region>`
+- `OPENAI_BASE_URL=https://api.openai.com/v1`
+- `OPENAI_API_KEY=<openai-api-key>`
+- `OPENAI_DETECTION_MODEL=gpt-4.1-mini`
+- `OPENAI_TRANSLATION_MODEL=gpt-4.1-mini`
+- `OPENAI_TIMEOUT_SECONDS=30`
 - `DEFAULT_TENANT_CODE=default`
+- `CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
 
 ### Gerçek Dil/Çeviri Sağlayıcısı Aktivasyonu
-1. `.env` içine Azure Translator bilgilerini girin.
+1. `.env` içine kullanacağınız sağlayıcının bilgilerini girin (Azure Translator veya OpenAI).
 2. Admin panelde `Settings` ekranından aşağıdaki keyleri güncelleyin:
-- `language_detection_provider=azure_translator`
-- `translation_provider=azure_translator`
+- `language_detection_provider=azure_translator` veya `language_detection_provider=openai`
+- `translation_provider=azure_translator` veya `translation_provider=openai`
 3. Worker servisini yeniden başlatın.
 
 ## Celery

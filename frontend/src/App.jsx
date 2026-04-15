@@ -30,13 +30,16 @@ export default function App() {
             {section.name}
           </h3>
           <div style={{ display: 'grid', gap: 8 }}>
-            {section.items.map((r) => (
+            {section.items.map((r) => {
+              const isSettingsChild = r.path.startsWith('/settings/') && r.path !== '/settings'
+              return (
               <NavLink
                 key={r.path}
                 to={r.path}
+                end={r.path === '/settings'}
                 style={({ isActive }) => ({
                   textDecoration: 'none',
-                  padding: '8px 10px',
+                  padding: isSettingsChild ? '8px 10px 8px 24px' : '8px 10px',
                   borderRadius: 8,
                   border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
                   background: isActive ? (isDark ? '#0f766e' : '#ccfbf1') : (isDark ? '#111827' : '#f8fafc'),
@@ -44,9 +47,10 @@ export default function App() {
                   fontWeight: isActive ? 700 : 500,
                 })}
               >
-                {r.label}
+                {isSettingsChild ? `↳ ${r.label}` : r.label}
               </NavLink>
-            ))}
+              )
+            })}
           </div>
         </section>
       ))}

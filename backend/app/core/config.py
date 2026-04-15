@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     azure_translator_endpoint: str = 'https://api.cognitive.microsofttranslator.com'
     azure_translator_key: str = ''
     azure_translator_region: str = ''
+    openai_base_url: str = 'https://api.openai.com/v1'
+    openai_api_key: str = ''
+    openai_detection_model: str = 'gpt-4.1-mini'
+    openai_translation_model: str = 'gpt-4.1-mini'
+    openai_timeout_seconds: float = 30.0
 
     admin_user_emails: str = 'admin@hascelik.com'
     admin_user_domains: str = ''
@@ -41,6 +46,7 @@ class Settings(BaseSettings):
     default_fallback_language: str = 'en'
     default_confidence_threshold: float = 0.70
     default_tenant_code: str = 'default'
+    cors_allow_origins: str = 'http://localhost:5173,http://127.0.0.1:5173'
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
@@ -59,6 +65,10 @@ class Settings(BaseSettings):
     @property
     def admin_domain_set(self) -> set[str]:
         return self._parse_csv(self.admin_user_domains)
+
+    @property
+    def cors_allow_origin_list(self) -> list[str]:
+        return [item.strip() for item in self.cors_allow_origins.split(',') if item.strip()]
 
     def is_admin_email(self, email: str) -> bool:
         normalized = email.strip().lower()

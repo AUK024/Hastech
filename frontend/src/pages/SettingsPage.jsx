@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../services/api'
 
 export function SettingsPage() {
@@ -22,6 +23,9 @@ export function SettingsPage() {
   return (
     <section>
       <h2>Settings</h2>
+      <p style={{ marginTop: 0 }}>
+        Header görsel/metin ayarları için <Link to="/settings/custom-ux">Custom UX</Link> sayfasını kullanın.
+      </p>
       <form onSubmit={submit} style={{ display: 'grid', gap: 8, maxWidth: 520 }}>
         <input placeholder="setting_key" value={form.setting_key} onChange={(e) => setForm({ ...form, setting_key: e.target.value })} required />
         <input placeholder="setting_value" value={form.setting_value} onChange={(e) => setForm({ ...form, setting_value: e.target.value })} required />
